@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ApplyButton } from "@/components/shared/apply-button";
+import { ApplicationSheet } from "@/components/shared/application-sheet";
 
 interface JobDetailClientProps {
   jobId: string;
@@ -20,6 +21,7 @@ export function JobDetailClient({
   profileComplete,
   hasApplied: initialHasApplied,
   isOwnJob,
+  hasResume,
 }: JobDetailClientProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [hasApplied, setHasApplied] = useState(initialHasApplied);
@@ -35,12 +37,13 @@ export function JobDetailClient({
         isOwnJob={isOwnJob}
         onApply={() => setSheetOpen(true)}
       />
-      {/* ApplicationSheet will be added in Phase 6 */}
-      {sheetOpen && (
-        <p className="mt-2 text-center text-sm text-muted-foreground">
-          Application form coming in Phase 6
-        </p>
-      )}
+      <ApplicationSheet
+        jobId={jobId}
+        hasResume={hasResume}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        onSuccess={() => setHasApplied(true)}
+      />
     </>
   );
 }
