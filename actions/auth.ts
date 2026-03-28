@@ -8,9 +8,7 @@ const signUpSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   fullName: z.string().min(1, "Name is required"),
-  role: z.enum(["employer", "seeker"], {
-    required_error: "Please select a role",
-  }),
+  role: z.enum(["employer", "seeker"], { error: "Please select a role" }),
 });
 
 export async function signUp(formData: FormData) {
@@ -22,7 +20,7 @@ export async function signUp(formData: FormData) {
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.errors[0].message };
+    return { error: parsed.error.issues[0].message };
   }
 
   const { email, password, fullName, role } = parsed.data;
@@ -62,7 +60,7 @@ export async function signIn(formData: FormData) {
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.errors[0].message };
+    return { error: parsed.error.issues[0].message };
   }
 
   const { email, password } = parsed.data;
