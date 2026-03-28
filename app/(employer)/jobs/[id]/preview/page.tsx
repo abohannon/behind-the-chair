@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { formatPayRange } from "@/lib/utils";
 import { JOB_TYPES, EXPERIENCE_LEVELS } from "@/lib/constants/categories";
+import { PublishButton } from "./publish-button";
 
 export default async function JobPreviewPage({
   params,
@@ -103,9 +104,9 @@ export default async function JobPreviewPage({
 
       {job.status === "draft" && (
         <div className="flex gap-4">
-          <Button disabled className="flex-1">
-            Publish for $39
-          </Button>
+          <div className="flex-1">
+            <PublishButton jobId={job.id} />
+          </div>
           <Button variant="outline" asChild className="flex-1">
             <Link href={`/employer/jobs/${job.id}/edit`}>Edit Post</Link>
           </Button>
