@@ -35,7 +35,7 @@ export default async function EmployerDashboardPage() {
 
   const { data: jobs } = await supabase
     .from("job_posts")
-    .select("*")
+    .select("id, title, status, city, state, created_at, posted_at, applications(count)")
     .eq("employer_id", employer.id)
     .order("created_at", { ascending: false });
 
@@ -66,36 +66,50 @@ export default async function EmployerDashboardPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {jobList.map((job) => (
-            <Card key={job.id}>
-              <CardHeader className="flex-row items-start justify-between space-y-0">
-                <div>
-                  <CardTitle>
-                    <Link
-                      href={`/employer/jobs/${job.id}/preview`}
-                      className="hover:underline"
-                    >
-                      {job.title}
-                    </Link>
-                  </CardTitle>
-                  <CardDescription>
-                    {job.city}, {job.state} &middot;{" "}
-                    {formatRelativeDate(job.created_at)}
-                  </CardDescription>
-                </div>
-                <StatusBadge status={job.status} />
-              </CardHeader>
-              {job.status === "draft" && (
-                <CardContent>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href={`/employer/jobs/${job.id}/preview`}>
-                      Complete Payment
-                    </Link>
-                  </Button>
-                </CardContent>
-              )}
-            </Card>
-          ))}
+          {jobList.map((job) => {
+            const appCount = (job.applications as any)?.[0]?.count ?? 0;
+            const jobHref =
+              job.status === "active"
+                ? `/employer/jobs/${job.id}/applications`
+                : `/employer/jobs/${job.id}/preview`;
+
+            return (
+              <Card key={job.id}>
+                <CardHeader className="flex-row items-start justify-between space-y-0">
+                  <div>
+                    <CardTitle>
+                      <Link
+                        href={jobHref}
+                        className="hover:underline"
+                      >
+                        {job.title}
+                      </Link>
+                    </CardTitle>
+                    <CardDescription>
+                      {job.city}, {job.state} &middot;{" "}
+                      {formatRelativeDate(job.created_at)}
+                      {job.status === "active" && (
+                        <>
+                          {" "}&middot; {appCount} application
+                          {appCount !== 1 ? "s" : ""}
+                        </>
+                      )}
+                    </CardDescription>
+                  </div>
+                  <StatusBadge status={job.status} />
+                </CardHeader>
+                {job.status === "draft" && (
+                  <CardContent>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/employer/jobs/${job.id}/preview`}>
+                        Complete Payment
+                      </Link>
+                    </Button>
+                  </CardContent>
+                )}
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
