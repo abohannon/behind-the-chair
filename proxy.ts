@@ -11,6 +11,7 @@ export async function proxy(request: NextRequest) {
     path.startsWith("/forgot-password") ||
     path.startsWith("/set-password") ||
     path.startsWith("/jobs") ||
+    path.startsWith("/businesses/") ||
     path.startsWith("/login") ||
     path.startsWith("/signup") ||
     path.startsWith("/callback") ||

@@ -531,4 +531,171 @@ await test("manual invitations produce a one-time link without email delivery", 
   assert.ok(invited);
   ids.push(invited.id);
 });
+await test("public business details validate hours and stay owner-editable", async () => {
+  const hours = {
+    Monday: { state: "open", opens: "09:00", closes: "17:00" },
+    Sunday: { state: "closed" },
+  };
+  ok(
+    await employer.client
+      .from("employer_profiles")
+      .update({ street_address: "123 Test Street", operating_hours: hours })
+      .eq("id", business.id),
+  );
+  const publicBusiness = ok(
+    await anon
+      .from("employer_profiles")
+      .select("street_address,operating_hours")
+      .eq("id", business.id)
+      .single(),
+  );
+  assert.deepEqual(publicBusiness.operating_hours, hours);
+  for (const bad of [
+    { Monday: { state: "open", opens: "18:00", closes: "09:00" } },
+    { Monday: { state: "open", opens: null, closes: "17:00" } },
+    { Monday: { state: "open", opens: "09:00", closes: "25:00" } },
+    { Funday: { state: "closed" } },
+  ])
+    assert.ok(
+      (
+        await employer.client
+          .from("employer_profiles")
+          .update({ operating_hours: bad })
+          .eq("id", business.id)
+      ).error,
+    );
+  assert.ok(
+    (
+      await employer.client
+        .from("employer_profiles")
+        .update({ street_address: "x".repeat(251) })
+        .eq("id", business.id)
+    ).error,
+  );
+  ok(
+    await other.client
+      .from("employer_profiles")
+      .update({ street_address: "Changed" })
+      .eq("id", business.id),
+  );
+  assert.equal(
+    ok(
+      await anon
+        .from("employer_profiles")
+        .select("street_address")
+        .eq("id", business.id)
+        .single(),
+    ).street_address,
+    "123 Test Street",
+  );
+});
+await test("new job fields enforce limits and industry roles without rewriting legacy jobs", async () => {
+  assert.equal(
+    ok(
+      await employer.client
+        .from("job_posts")
+        .select("role_category")
+        .eq("id", job.id)
+        .single(),
+    ).role_category,
+    null,
+  );
+  for (const patch of [
+    { role_category: "nail_technician" },
+    { role_category: "invented" },
+    { schedule_details: "x".repeat(2001) },
+    { benefits: "x".repeat(4001) },
+  ])
+    assert.ok(
+      (await employer.client.from("job_posts").update(patch).eq("id", job.id))
+        .error,
+    );
+  ok(
+    await employer.client
+      .from("job_posts")
+      .update({
+        role_category: "salon_manager",
+        schedule_details: "Tuesday–Saturday, 10am–6pm",
+        benefits: "Paid education",
+      })
+      .eq("id", job.id),
+  );
+  ok(
+    await other.client
+      .from("job_posts")
+      .update({ benefits: "Changed" })
+      .eq("id", job.id),
+  );
+  assert.equal(
+    ok(
+      await employer.client
+        .from("job_posts")
+        .select("benefits")
+        .eq("id", job.id)
+        .single(),
+    ).benefits,
+    "Paid education",
+  );
+  const filtered = ok(
+    await anon.rpc("search_jobs_v2", {
+      keyword: run,
+      industry: "Hair",
+      job_role: "salon_manager",
+    }),
+  );
+  assert.equal(filtered.length, 1);
+  assert.equal(filtered[0].id, job.id);
+  assert.equal(
+    ok(
+      await anon.rpc("search_jobs_v2", {
+        keyword: run,
+        industry: "",
+        job_role: "",
+      }),
+    ).length,
+    2,
+  );
+  assert.equal(
+    ok(
+      await anon.rpc("search_jobs_v2", {
+        keyword: "Salon Manager",
+        industry: "",
+        job_role: "",
+      }),
+    ).some((j) => j.id === job.id),
+    true,
+  );
+  ok(
+    await employer.client
+      .from("job_posts")
+      .update({ specialties: ["Balayage Specialist"] })
+      .eq("id", job2.id),
+  );
+  assert.equal(
+    ok(
+      await anon.rpc("search_jobs_v2", {
+        keyword: "Balayage Specialist",
+        industry: "Hair",
+        job_role: "",
+      }),
+    ).some((j) => j.id === job2.id),
+    true,
+  );
+  ok(
+    await employer.client.rpc("set_job_status", {
+      job_id: job.id,
+      new_status: "closed",
+    }),
+  );
+  assert.equal(
+    ok(
+      await employer.client.rpc("search_jobs_v2", {
+        keyword: run,
+        industry: "",
+        job_role: "salon_manager",
+      }),
+    ).length,
+    0,
+  );
+});
 await cleanup();

@@ -47,6 +47,14 @@ The integration and browser suites refuse non-local backends and create/delete s
 
 To build against the local backend, stop the dev server first, then run `npm run build:alpha`. Restart with `npm run dev:alpha` afterward. `npm run build` uses your normal environment instead.
 
+## Business pages and job discovery
+
+Businesses have public, shareable pages at `/businesses/[id]`, linked from job details and the business dashboard/editor. Pages show the existing logo and ordered gallery, description, links, optional public street address, optional weekly operating hours, and active jobs only. A saved business profile is public even without open jobs. Hours are Portland-local, with one same-day interval per day; unspecified hours differ from closed days.
+
+New jobs choose a structured role alongside their industry and specialties. Days/hours and benefits are optional text fields shown in previews and public details. Older listings keep their original data and may remain without an assigned role. Search combines keyword, industry, and role with filters retained through pagination. Keyword search includes role labels and specialties. The original search RPC remains available during rollout; the app uses `search_jobs_v2`.
+
+Migration `00006_business_pages_and_job_details.sql` adds compatible nullable fields, database validation, and owner-only update grants. Apply it before deploying code that uses those fields. Geography remains Portland-only; multiple locations and additional markets are deferred.
+
 ## Data boundaries
 
 - Businesses and applicants can self-register. Applicants and employers use separate roles; one owner per business.

@@ -6,6 +6,7 @@ import {
   SPECIALTIES,
   type Category,
 } from "@/lib/constants/categories";
+import { JOB_ROLES, roleMatchesIndustry } from "@/lib/constants/job-roles";
 import type { Tables } from "@/lib/types/database";
 export function JobForm({ initial }: { initial?: Tables<"job_posts"> }) {
   const [result, action, pending] = useActionState(
@@ -15,6 +16,7 @@ export function JobForm({ initial }: { initial?: Tables<"job_posts"> }) {
   const [category, setCategory] = useState<Category>(
     (initial?.category as Category) || "Hair",
   );
+  const [role, setRole] = useState(initial?.role_category ?? "");
   const [arrangement, setArrangement] = useState(
     initial?.arrangement ?? "employment",
   );
@@ -52,7 +54,7 @@ export function JobForm({ initial }: { initial?: Tables<"job_posts"> }) {
         />
       </label>
       <p className="text-sm text-muted-foreground">
-        Portland, Oregon · Free posting during our private alpha
+        Portland, Oregon · Free posting during our Portland alpha
       </p>
       <label className="block text-sm font-medium">
         Industry
@@ -66,6 +68,39 @@ export function JobForm({ initial }: { initial?: Tables<"job_posts"> }) {
             <option key={c}>{c}</option>
           ))}
         </select>
+      </label>
+      <label className="block text-sm font-medium">
+        Role {!initial ? "*" : ""}
+        <select
+          name="roleCategory"
+          className={input}
+          required={!initial}
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+        >
+          <option value="">
+            {initial ? "Not specified" : "Choose a role"}
+          </option>
+          {JOB_ROLES.filter(
+            (r) => roleMatchesIndustry(r.value, category) || r.value === role,
+          ).map((r) => (
+            <option
+              key={r.value}
+              value={r.value}
+              disabled={!roleMatchesIndustry(r.value, category)}
+            >
+              {r.label}
+              {!roleMatchesIndustry(r.value, category)
+                ? " — choose a compatible role"
+                : ""}
+            </option>
+          ))}
+        </select>
+        {role && !roleMatchesIndustry(role, category) && (
+          <span className="mt-1 block text-sm text-destructive">
+            Choose a role for this industry.
+          </span>
+        )}
       </label>
       <fieldset key={category}>
         <legend className="text-sm font-medium">Specialties (optional)</legend>
@@ -122,6 +157,28 @@ export function JobForm({ initial }: { initial?: Tables<"job_posts"> }) {
           <option value="part_time">Part-time</option>
           <option value="flexible">Flexible / discuss with business</option>
         </select>
+      </label>
+      <label className="block text-sm font-medium">
+        Days and hours (optional)
+        <textarea
+          className={input}
+          name="scheduleDetails"
+          rows={3}
+          maxLength={2000}
+          defaultValue={initial?.schedule_details ?? ""}
+          placeholder="Tuesday–Saturday, 10am–6pm; one evening shift."
+        />
+      </label>
+      <label className="block text-sm font-medium">
+        Benefits and perks (optional)
+        <textarea
+          className={input}
+          name="benefits"
+          rows={4}
+          maxLength={4000}
+          defaultValue={initial?.benefits ?? ""}
+          placeholder="Paid education, health benefits, product discounts…"
+        />
       </label>
       <fieldset key={arrangement} className="space-y-4">
         <legend className="text-sm font-medium">

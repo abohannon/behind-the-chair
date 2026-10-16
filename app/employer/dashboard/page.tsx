@@ -54,6 +54,9 @@ export default async function EmployerDashboardPage() {
         </div>
         <div className="flex flex-wrap gap-3">
           <Button asChild variant="outline">
+            <Link href={`/businesses/${employer.id}`}>View public page</Link>
+          </Button>
+          <Button asChild variant="outline">
             <Link href="/employer/profile">Business profile</Link>
           </Button>
           <Button asChild>

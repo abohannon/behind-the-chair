@@ -1,3 +1,5 @@
+import { JobSearchForm } from "@/components/shared/job-search-form";
+import { roleMatchesIndustry } from "@/lib/constants/job-roles";
 import { createClient } from "@/lib/supabase/server";
 import { JobCard } from "@/components/shared/job-card";
 import { CATEGORIES } from "@/lib/constants/categories";
@@ -11,11 +13,20 @@ export const metadata: Metadata = {
 export default async function Jobs({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string; page?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    category?: string;
+    role?: string;
+    page?: string;
+  }>;
 }) {
   const params = await searchParams;
-  const q = (params.q ?? "").trim().slice(0, 120);
+  const q = (typeof params.q === "string" ? params.q : "").trim().slice(0, 120);
   const category = CATEGORIES.find((c) => c === params.category) ?? "";
+  const role =
+    params.role && roleMatchesIndustry(params.role, category)
+      ? params.role
+      : "";
   const rawPage = Number(params.page);
   const page =
     Number.isInteger(rawPage) && rawPage > 0 ? Math.min(rawPage, 10000) : 1;
@@ -26,7 +37,11 @@ export default async function Jobs({
     error,
     count,
   } = await supabase
-    .rpc("search_jobs", { keyword: q, industry: category }, { count: "exact" })
+    .rpc(
+      "search_jobs_v2",
+      { keyword: q, industry: category, job_role: role },
+      { count: "exact" },
+    )
     .select("*,employer_profiles(salon_name,logo_url)")
     .order("posted_at", { ascending: false })
     .order("id")
@@ -35,6 +50,7 @@ export default async function Jobs({
     const p = new URLSearchParams();
     if (q) p.set("q", q);
     if (category) p.set("category", category);
+    if (role) p.set("role", role);
     p.set("page", String(next));
     return `/jobs?${p}`;
   }
@@ -51,40 +67,25 @@ export default async function Jobs({
           Find your place in Portland’s beauty community. Explore opportunities
           in hair, nails, skin, and more.
         </p>
-        <form className="mt-8 grid gap-3 sm:grid-cols-[1fr_200px_auto]">
-          <label className="text-sm font-medium">
-            Keyword
-            <input
-              name="q"
-              defaultValue={q}
-              maxLength={120}
-              placeholder="Role, skill, or business"
-              className="mt-2 w-full rounded-md border bg-background p-3"
-            />
-          </label>
-          <label className="text-sm font-medium">
-            Industry
-            <select
-              name="category"
-              defaultValue={category}
-              className="mt-2 w-full rounded-md border bg-background p-3"
-            >
-              <option value="">All industries</option>
-              {CATEGORIES.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-          </label>
-          <button className="self-end rounded-md bg-primary px-6 py-3 text-primary-foreground">
-            Find jobs
-          </button>
-        </form>
+        <JobSearchForm
+          key={`${q}:${category}:${role}`}
+          keyword={q}
+          industry={category}
+          jobRole={role}
+        />
+        {params.role && !role && (
+          <p role="status" className="mt-3 text-sm">
+            The role filter was reset. Choose a role for this industry.
+          </p>
+        )}
       </section>
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">
-          {q || category ? "Matching opportunities" : "Latest opportunities"}
+          {q || category || role
+            ? "Matching opportunities"
+            : "Latest opportunities"}
         </h2>
-        {(q || category) && (
+        {(q || category || role) && (
           <Link href="/jobs" className="text-sm underline">
             Clear filters
           </Link>
@@ -97,12 +98,12 @@ export default async function Jobs({
       ) : !jobs?.length ? (
         <div className="rounded-xl border bg-card p-8">
           <h3 className="font-medium">
-            {q || category
+            {q || category || role
               ? "No matching jobs yet"
               : "The next opportunity is on its way."}
           </h3>
           <p className="mt-2 text-muted-foreground">
-            {q || category
+            {q || category || role
               ? "Try another keyword or clear the filters."
               : "We’re inviting our first Portland businesses. Check back soon."}
           </p>

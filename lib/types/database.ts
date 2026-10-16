@@ -39,7 +39,6 @@ export type Database = {
           email: string;
           role: Database["public"]["Enums"]["user_role"];
         };
-        ComputedFields: never;
         Insert: {
           email: string;
           role: Database["public"]["Enums"]["user_role"];
@@ -56,7 +55,6 @@ export type Database = {
           rating: number;
           updated_at: string;
         };
-        ComputedFields: never;
         Insert: {
           application_id: string;
           rating: number;
@@ -92,7 +90,6 @@ export type Database = {
           submitted_name: string | null;
           updated_at: string;
         };
-        ComputedFields: never;
         Insert: {
           applied_at?: string;
           contact_email?: string | null;
@@ -147,13 +144,14 @@ export type Database = {
           location_city: string;
           location_state: string;
           logo_url: string | null;
-          photos: NonNullable<Json>;
+          operating_hours: Json | null;
+          photos: Json;
           salon_name: string;
+          street_address: string | null;
           updated_at: string;
           user_id: string;
           website_url: string | null;
         };
-        ComputedFields: never;
         Insert: {
           created_at?: string;
           description: string;
@@ -162,8 +160,10 @@ export type Database = {
           location_city: string;
           location_state: string;
           logo_url?: string | null;
-          photos?: NonNullable<Json>;
+          operating_hours?: Json | null;
+          photos?: Json;
           salon_name: string;
+          street_address?: string | null;
           updated_at?: string;
           user_id: string;
           website_url?: string | null;
@@ -176,8 +176,10 @@ export type Database = {
           location_city?: string;
           location_state?: string;
           logo_url?: string | null;
-          photos?: NonNullable<Json>;
+          operating_hours?: Json | null;
+          photos?: Json;
           salon_name?: string;
+          street_address?: string | null;
           updated_at?: string;
           user_id?: string;
           website_url?: string | null;
@@ -195,6 +197,7 @@ export type Database = {
       job_posts: {
         Row: {
           arrangement: string;
+          benefits: string | null;
           category: string;
           city: string;
           commission_percent: number | null;
@@ -209,16 +212,18 @@ export type Database = {
           pay_range_low: number | null;
           pay_unit: string | null;
           posted_at: string | null;
+          role_category: string | null;
           schedule: string;
+          schedule_details: string | null;
           specialties: Json | null;
           state: string;
           status: Database["public"]["Enums"]["job_status"];
           title: string;
           updated_at: string;
         };
-        ComputedFields: never;
         Insert: {
           arrangement?: string;
+          benefits?: string | null;
           category: string;
           city: string;
           commission_percent?: number | null;
@@ -233,7 +238,9 @@ export type Database = {
           pay_range_low?: number | null;
           pay_unit?: string | null;
           posted_at?: string | null;
+          role_category?: string | null;
           schedule?: string;
+          schedule_details?: string | null;
           specialties?: Json | null;
           state: string;
           status?: Database["public"]["Enums"]["job_status"];
@@ -242,6 +249,7 @@ export type Database = {
         };
         Update: {
           arrangement?: string;
+          benefits?: string | null;
           category?: string;
           city?: string;
           commission_percent?: number | null;
@@ -256,7 +264,9 @@ export type Database = {
           pay_range_low?: number | null;
           pay_unit?: string | null;
           posted_at?: string | null;
+          role_category?: string | null;
           schedule?: string;
+          schedule_details?: string | null;
           specialties?: Json | null;
           state?: string;
           status?: Database["public"]["Enums"]["job_status"];
@@ -283,7 +293,6 @@ export type Database = {
           stripe_payment_id: string;
           type: Database["public"]["Enums"]["payment_type"];
         };
-        ComputedFields: never;
         Insert: {
           amount_cents: number;
           created_at?: string;
@@ -329,7 +338,6 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"];
           updated_at: string;
         };
-        ComputedFields: never;
         Insert: {
           avatar_url?: string | null;
           created_at?: string;
@@ -369,7 +377,6 @@ export type Database = {
           user_id: string;
           years_experience: number | null;
         };
-        ComputedFields: never;
         Insert: {
           bio?: string | null;
           city?: string | null;
@@ -431,6 +438,7 @@ export type Database = {
         Args: { expected: Database["public"]["Enums"]["user_role"] };
         Returns: boolean;
       };
+      job_role_label: { Args: { role: string }; Returns: string };
       owns_application: { Args: { application: string }; Returns: boolean };
       owns_job: { Args: { job_id: string }; Returns: boolean };
       resume_submitted: { Args: { path: string }; Returns: boolean };
@@ -438,6 +446,7 @@ export type Database = {
         Args: { industry?: string; keyword?: string };
         Returns: {
           arrangement: string;
+          benefits: string | null;
           category: string;
           city: string;
           commission_percent: number | null;
@@ -452,7 +461,44 @@ export type Database = {
           pay_range_low: number | null;
           pay_unit: string | null;
           posted_at: string | null;
+          role_category: string | null;
           schedule: string;
+          schedule_details: string | null;
+          specialties: Json | null;
+          state: string;
+          status: Database["public"]["Enums"]["job_status"];
+          title: string;
+          updated_at: string;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "job_posts";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
+      search_jobs_v2: {
+        Args: { industry?: string; job_role?: string; keyword?: string };
+        Returns: {
+          arrangement: string;
+          benefits: string | null;
+          category: string;
+          city: string;
+          commission_percent: number | null;
+          created_at: string;
+          description: string;
+          employer_id: string;
+          experience_level: Database["public"]["Enums"]["experience_level"];
+          expires_at: string | null;
+          id: string;
+          job_type: Database["public"]["Enums"]["job_type"];
+          pay_range_high: number | null;
+          pay_range_low: number | null;
+          pay_unit: string | null;
+          posted_at: string | null;
+          role_category: string | null;
+          schedule: string;
+          schedule_details: string | null;
           specialties: Json | null;
           state: string;
           status: Database["public"]["Enums"]["job_status"];
@@ -484,6 +530,11 @@ export type Database = {
           telephone: string;
         };
         Returns: string;
+      };
+      valid_business_hours: { Args: { hours: Json }; Returns: boolean };
+      valid_job_role: {
+        Args: { industry: string; role: string };
+        Returns: boolean;
       };
     };
     Enums: {

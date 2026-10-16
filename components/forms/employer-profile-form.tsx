@@ -6,6 +6,7 @@ import {
 } from "@/actions/employer-profile";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { BusinessHoursEditor } from "./business-hours-editor";
 import type { Tables } from "@/lib/types/database";
 export function EmployerProfileForm({
   initial,
@@ -71,6 +72,10 @@ export function EmployerProfileForm({
         }}
         className="space-y-5 rounded-xl border bg-card p-6"
       >
+        <p className="text-sm text-muted-foreground">
+          Your saved business profile is public. Only add details you want
+          applicants to see.
+        </p>
         <label className="block text-sm font-medium">
           Business name *
           <input
@@ -113,6 +118,21 @@ export function EmployerProfileForm({
             defaultValue={initial?.instagram_handle ?? ""}
           />
         </label>
+        <label className="block text-sm font-medium">
+          Public street address (optional)
+          <input
+            name="streetAddress"
+            maxLength={250}
+            defaultValue={initial?.street_address ?? ""}
+            className="mt-2 w-full rounded-md border p-3"
+            placeholder="Street and suite, Portland, OR"
+          />
+          <span className="mt-1 block text-sm font-normal text-muted-foreground">
+            This address will appear on your public business page. Leave blank
+            to show only Portland, OR.
+          </span>
+        </label>
+        <BusinessHoursEditor initial={initial?.operating_hours ?? null} />
         {state.error && (
           <p role="alert" className="text-destructive">
             {state.error}

@@ -149,6 +149,25 @@ test("business posts, applicant applies with a tailored resume, business reviews
     .getByLabel("About your business")
     .fill("A welcoming Portland studio for hair and beauty professionals.");
   await page
+    .getByLabel("Public street address", { exact: false })
+    .fill("123 Test Street, Suite 4");
+  await page.getByLabel("Monday hours", { exact: true }).selectOption("open");
+  await page.getByLabel("Monday opens", { exact: true }).fill("09:00");
+  await page.getByLabel("Monday closes", { exact: true }).fill("17:00");
+  await page.getByLabel("Sunday hours", { exact: true }).selectOption("closed");
+  await page.getByLabel("Monday closes", { exact: true }).fill("08:00");
+  await page
+    .getByRole("button", { name: "Save business", exact: true })
+    .click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Check your business hours" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Business name")).toHaveValue(
+    `Chapter Studio ${suffix}`,
+  );
+  await page.getByLabel("Monday closes", { exact: true }).fill("17:00");
+
+  await page
     .getByRole("button", { name: "Save business", exact: true })
     .click();
   await expect(
@@ -186,6 +205,15 @@ test("business posts, applicant applies with a tailored resume, business reviews
     .fill(
       "Bring your creativity to our Portland team. Hourly plus commission.",
     );
+  await page
+    .getByLabel("Role", { exact: false })
+    .selectOption("cut_color_stylist");
+  await page
+    .getByLabel("Days and hours", { exact: false })
+    .fill("Tuesday–Saturday, 10am–6pm");
+  await page
+    .getByLabel("Benefits and perks", { exact: false })
+    .fill("Paid education and product discounts");
   await page.getByLabel("Minimum ($)", { exact: true }).fill("25");
   await page.getByLabel("Maximum ($)", { exact: true }).fill("40");
   await page.getByLabel("Rate unit").selectOption("hour");
@@ -210,6 +238,24 @@ test("business posts, applicant applies with a tailored resume, business reviews
     page.getByRole("heading", { name: "Job Preview", exact: true }),
   ).toBeVisible();
   const jobId = new URL(page.url()).pathname.split("/")[3];
+  await expect(
+    page.getByText("Paid education and product discounts", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Edit Post", exact: true }).click();
+  await expect(page.getByLabel("Role", { exact: false })).toHaveValue(
+    "cut_color_stylist",
+  );
+  await expect(page.getByLabel("Days and hours", { exact: false })).toHaveValue(
+    "Tuesday–Saturday, 10am–6pm",
+  );
+  await expect(
+    page.getByLabel("Benefits and perks", { exact: false }),
+  ).toHaveValue("Paid education and product discounts");
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Job Preview", exact: true }),
+  ).toBeVisible();
+
   await page
     .getByRole("button", { name: "Publish job · Free", exact: true })
     .click();
@@ -220,7 +266,67 @@ test("business posts, applicant applies with a tailored resume, business reviews
     viewport: { width: 375, height: 844 },
   });
   const candidatePage = await candidateContext.newPage();
+  const publicHref = (await page
+    .getByRole("link", { name: "View public page", exact: true })
+    .count())
+    ? await page
+        .getByRole("link", { name: "View public page", exact: true })
+        .getAttribute("href")
+    : null;
+  const { data: publicBusiness } = await admin
+    .from("employer_profiles")
+    .select("id")
+    .eq("user_id", business.id)
+    .single();
+  const businessUrl = publicHref ?? `/businesses/${publicBusiness!.id}`;
+  await candidatePage.goto(businessUrl);
+  await expect(
+    candidatePage.getByRole("heading", {
+      name: `Chapter Studio ${suffix}`,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    candidatePage.getByText("123 Test Street, Suite 4", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    candidatePage.getByText("9:00 AM–5:00 PM", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    candidatePage.getByText("Closed", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    candidatePage.getByRole("link", {
+      name: new RegExp(`Hair stylist ${suffix}`),
+    }),
+  ).toBeVisible();
+  expect(
+    await candidatePage.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await candidatePage.goto(
+    `/jobs?q=${suffix}&category=Hair&role=cut_color_stylist`,
+  );
+  await expect(
+    candidatePage.getByRole("link", {
+      name: new RegExp(`Hair stylist ${suffix}`),
+    }),
+  ).toBeVisible();
+
   await candidatePage.goto(`/jobs/${jobId}`);
+  await expect(
+    candidatePage.getByText("Tuesday–Saturday, 10am–6pm", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    candidatePage.getByText("Paid education and product discounts", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    candidatePage.getByRole("link", { name: "View business", exact: true }),
+  ).toHaveAttribute("href", businessUrl);
+
   await candidatePage
     .getByRole("button", { name: "Apply Now", exact: true })
     .click();
@@ -361,6 +467,13 @@ test("business posts, applicant applies with a tailored resume, business reviews
   ).toBeVisible();
   await candidatePage.reload();
   await expect(candidatePage.getByText(/Listing closed/)).toBeVisible();
+  await page.goto(businessUrl);
+  await expect(
+    page.getByText("No open positions right now", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: new RegExp(`Hair stylist ${suffix}`) }),
+  ).toHaveCount(0);
   await candidateContext.close();
 });
 test("invitation token exchange and expired-link recovery", async ({
@@ -416,4 +529,146 @@ test("password recovery email works in a fresh browser context", async ({
     .click();
   await expect(recovered).toHaveURL(/\/jobs$/);
   await fresh.close();
+});
+
+test("public business fallback, role discovery and pagination preserve filters and hide nonpublic jobs", async ({
+  page,
+}) => {
+  const owner = await account("employer");
+  const { data: business, error } = await admin
+    .from("employer_profiles")
+    .insert({
+      user_id: owner.id,
+      salon_name: `Discovery Studio ${suffix}`,
+      description:
+        "A Portland workplace with opportunities across beauty industries.",
+      location_city: "Portland",
+      location_state: "OR",
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  const fields = {
+    employer_id: business!.id,
+    description: "A welcoming team",
+    job_type: "hourly" as const,
+    experience_level: "entry" as const,
+    city: "Portland",
+    state: "OR",
+  };
+  const listings = [
+    ...Array.from({ length: 13 }, (_, i) => ({
+      ...fields,
+      title: `Reception ${suffix} ${i}`,
+      category: "Hair",
+      role_category: "receptionist",
+      status: "active" as const,
+      posted_at: new Date(1700000000000 + i * 1000).toISOString(),
+    })),
+    {
+      ...fields,
+      title: `Nails reception ${suffix}`,
+      category: "Nails",
+      role_category: "receptionist",
+      status: "active" as const,
+    },
+    {
+      ...fields,
+      title: `Legacy opportunity ${suffix}`,
+      category: "Hair",
+      status: "active" as const,
+    },
+    {
+      ...fields,
+      title: `Draft hidden ${suffix}`,
+      category: "Hair",
+      status: "draft" as const,
+    },
+    {
+      ...fields,
+      title: `Closed hidden ${suffix}`,
+      category: "Hair",
+      status: "closed" as const,
+    },
+  ];
+  const inserted = await admin.from("job_posts").insert(listings);
+  if (inserted.error) throw inserted.error;
+  await page.goto(`/businesses/${business!.id}`);
+  await expect(
+    page.getByRole("heading", {
+      name: `Discovery Studio ${suffix}`,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Hours not specified. Contact the business for details.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: new RegExp(`Draft hidden ${suffix}`) }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: new RegExp(`Closed hidden ${suffix}`) }),
+  ).toHaveCount(0);
+  await page.screenshot({
+    path: "test-results/business-desktop.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 375, height: 844 });
+  await page.screenshot({
+    path: "test-results/business-mobile.png",
+    fullPage: true,
+  });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.goto(`/jobs?q=${suffix}&category=Hair&role=receptionist`);
+  await expect(
+    page.getByRole("link", { name: new RegExp(`Reception ${suffix}`) }),
+  ).toHaveCount(12);
+  await page.getByRole("link", { name: "Next", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp("role=receptionist"));
+  await expect(page.getByText("Page 2", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: new RegExp(`Reception ${suffix}`) }),
+  ).toHaveCount(1);
+  await page
+    .getByRole("combobox", { name: "Industry", exact: true })
+    .selectOption("Nails");
+  await page.getByRole("button", { name: "Find jobs", exact: true }).click();
+  await expect(page.getByText("Page 1", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: new RegExp(`Nails reception ${suffix}`) }),
+  ).toBeVisible();
+  await page
+    .getByRole("combobox", { name: "Role", exact: true })
+    .selectOption("nail_technician");
+  await page
+    .getByRole("combobox", { name: "Industry", exact: true })
+    .selectOption("Hair");
+  await expect(
+    page.getByRole("combobox", { name: "Role", exact: true }),
+  ).toHaveValue("");
+  await expect(
+    page.getByRole("status").filter({ hasText: "Role filter reset" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Find jobs", exact: true }).click();
+  // Legacy jobs without a role stay available in general industry searches.
+  await page.goto(`/jobs?q=Legacy%20opportunity%20${suffix}&category=Hair`);
+  await expect(
+    page.getByRole("link", {
+      name: new RegExp(`Legacy opportunity ${suffix}`),
+    }),
+  ).toBeVisible();
+  await page.goto(`/jobs?q=${suffix}&category=Hair&role=nail_technician`);
+  await expect(
+    page.getByRole("status").filter({ hasText: "role filter was reset" }),
+  ).toBeVisible();
+  await page.goto("/businesses/not-a-valid-id");
+  await expect(
+    page.getByRole("heading", { name: "404", exact: true }),
+  ).toBeVisible();
 });

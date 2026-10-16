@@ -80,3 +80,37 @@ test("resume boundary validates required PDF type and 10 MB size limit", () => {
     null,
   );
 });
+
+test("business hours distinguish missing and closed and reject malformed or overnight intervals", async () => {
+  const { hoursSchema, hoursFromForm, formatBusinessTime } =
+    await import("../lib/validation/business.ts");
+  assert.equal(
+    hoursSchema.safeParse({
+      Monday: { state: "closed" },
+      Tuesday: { state: "open", opens: "09:00", closes: "17:00" },
+    }).success,
+    true,
+  );
+  for (const hours of [
+    { Funday: { state: "closed" } },
+    { Monday: { state: "open", opens: "25:00", closes: "27:00" } },
+    { Monday: { state: "open", opens: "17:00", closes: "09:00" } },
+    { Monday: { state: "closed", opens: "09:00" } },
+  ])
+    assert.equal(hoursSchema.safeParse(hours).success, false);
+  const f = new FormData();
+  f.set("Monday-state", "closed");
+  assert.deepEqual(hoursFromForm(f), { Monday: { state: "closed" } });
+  assert.equal(formatBusinessTime("00:00"), "12:00 AM");
+  assert.equal(formatBusinessTime("12:30"), "12:30 PM");
+});
+test("job roles work across industries or only in the matching industry", async () => {
+  const { roleMatchesIndustry, roleLabel } =
+    await import("../lib/constants/job-roles.ts");
+  assert.equal(roleMatchesIndustry("receptionist", "Nails"), true);
+  assert.equal(roleMatchesIndustry("cut_stylist", "Nails"), false);
+  assert.equal(roleMatchesIndustry("nail_technician", "Nails"), true);
+  assert.equal(roleMatchesIndustry("not-a-role", "Hair"), false);
+  assert.equal(roleLabel("salon_manager"), "Salon Manager");
+  assert.equal(roleLabel(null), null);
+});

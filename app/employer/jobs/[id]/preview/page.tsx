@@ -1,3 +1,4 @@
+import { JobExtraDetails } from "@/components/shared/job-extra-details";
 import { requireUser } from "@/lib/auth/require-user";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
@@ -87,6 +88,7 @@ export default async function JobPreviewPage({
             </div>
           )}
 
+          <JobExtraDetails job={job} />
           <div>
             <h3 className="mb-1 text-sm font-medium text-muted-foreground">
               Pay Range

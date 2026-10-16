@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth/require-user";
 import { EmployerProfileForm } from "@/components/forms/employer-profile-form";
 import {
@@ -23,6 +24,14 @@ export default async function BusinessProfile({
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <h1 className="text-3xl font-semibold">Your business</h1>
+      {initial && (
+        <Link
+          className="inline-block text-sm underline"
+          href={`/businesses/${initial.id}`}
+        >
+          View public page
+        </Link>
+      )}
       {(await searchParams).saved && (
         <p role="status">
           Business saved. You can now add images or post a job.

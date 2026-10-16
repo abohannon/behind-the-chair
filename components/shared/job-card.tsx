@@ -1,3 +1,4 @@
+import { roleLabel } from "@/lib/constants/job-roles";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,7 @@ interface JobCardProps {
     job_type: string;
     experience_level: string;
     category: string;
+    role_category?: string | null;
     pay_range_low: number | null;
     pay_range_high: number | null;
     posted_at: string | null;
@@ -57,6 +59,9 @@ export function JobCard({ job }: JobCardProps) {
         <CardContent className="pt-0">
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary">{job.category}</Badge>
+            {roleLabel(job.role_category) && (
+              <Badge variant="outline">{roleLabel(job.role_category)}</Badge>
+            )}
             <Badge variant="outline">{jobTypeLabel}</Badge>
             <Badge variant="outline">{expLabel}</Badge>
           </div>

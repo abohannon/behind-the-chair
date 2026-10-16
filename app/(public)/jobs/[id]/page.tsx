@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { JobExtraDetails } from "@/components/shared/job-extra-details";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
@@ -146,7 +148,12 @@ export default async function JobDetailPage({ params }: PageProps) {
                   {job.title}
                 </CardTitle>
                 <p className="text-muted-foreground">
-                  {job.employer_profiles?.salon_name}
+                  <Link
+                    className="hover:underline"
+                    href={`/businesses/${job.employer_profiles?.id}`}
+                  >
+                    {job.employer_profiles?.salon_name}
+                  </Link>
                 </p>
               </div>
             </div>
@@ -180,6 +187,11 @@ export default async function JobDetailPage({ params }: PageProps) {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardContent className="pt-6">
+            <JobExtraDetails job={job} />
+          </CardContent>
+        </Card>
         {/* Job description */}
         <Card>
           <CardHeader>
@@ -219,6 +231,12 @@ export default async function JobDetailPage({ params }: PageProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              <Link
+                className="inline-block text-sm font-medium underline"
+                href={`/businesses/${job.employer_profiles.id}`}
+              >
+                View business
+              </Link>
               {Array.isArray(job.employer_profiles.photos) &&
                 job.employer_profiles.photos
                   .filter((url): url is string => typeof url === "string")

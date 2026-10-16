@@ -8,6 +8,7 @@ import {
   SPECIALTIES,
   type Category,
 } from "@/lib/constants/categories";
+import { roleMatchesIndustry } from "@/lib/constants/job-roles";
 const amount = z.union([
   z.literal(""),
   z.coerce.number().finite().min(0).max(10000000),
@@ -17,6 +18,9 @@ const jobSchema = z
     title: z.string().trim().min(1, "Title is required").max(200),
     description: z.string().trim().min(1, "Description is required").max(20000),
     category: z.enum(CATEGORIES),
+    roleCategory: z.string().max(80).default(""),
+    scheduleDetails: z.string().trim().max(2000).default(""),
+    benefits: z.string().trim().max(4000).default(""),
     experienceLevel: z.enum(["entry", "mid", "senior"]),
     arrangement: z.enum(["employment", "booth_rental"]),
     schedule: z.enum(["full_time", "part_time", "flexible"]),
@@ -72,6 +76,11 @@ async function save(
   const specialties = data.getAll("specialties").map(String);
   const v = parsed.data;
   if (
+    (!jobId && !v.roleCategory) ||
+    (v.roleCategory && !roleMatchesIndustry(v.roleCategory, v.category))
+  )
+    return { error: "Choose a role that matches the selected industry" };
+  if (
     !specialties.every((s) => SPECIALTIES[v.category as Category].includes(s))
   )
     return { error: "Choose specialties within the selected industry" };
@@ -85,6 +94,9 @@ async function save(
     title: v.title,
     description: v.description,
     category: v.category,
+    role_category: v.roleCategory || null,
+    schedule_details: v.scheduleDetails || null,
+    benefits: v.benefits || null,
     experience_level: v.experienceLevel,
     arrangement: v.arrangement,
     schedule: v.schedule,
@@ -121,7 +133,8 @@ async function save(
         .single();
   if (result.error || !result.data)
     return { error: "Unable to save this job. Please try again." };
-  revalidatePath("/jobs");
+  revalidatePath("/jobs", "layout");
+  revalidatePath("/businesses/[id]", "page");
   redirect(`/employer/jobs/${result.data.id}/preview`);
 }
 export async function createJobPost(_state: JobPostState, data: FormData) {
@@ -146,7 +159,8 @@ export async function setJobStatus(id: string, status: "active" | "closed") {
     return {
       error: "Unable to update the listing. Check its details and try again.",
     };
-  revalidatePath("/jobs");
+  revalidatePath("/jobs", "layout");
+  revalidatePath("/businesses/[id]", "page");
   revalidatePath("/employer/dashboard");
   revalidatePath(`/employer/jobs/${id}/preview`);
   return {};
