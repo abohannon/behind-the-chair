@@ -61,7 +61,7 @@ Abandoned resumes older than 24 hours can be inspected with `node --env-file=.en
 
 ## Private hosted preview
 
-Vercel project: [behind-the-chair](https://vercel.com/adambohannonhousecallpros-projects/behind-the-chair). This checkout is linked through ignored `.vercel/project.json`. It is configured for Next.js, Node 22, `npm ci`, `npm run build`, and Vercel Authentication on all deployments. No deployment or hosted environment variables have been created yet.
+Vercel setup is pending authentication to the personal account. The empty project mistakenly created in the Housecall Pro account was deleted, and its local project link was removed. No deployment or hosted environment variables were created.
 
 The hosted preview still requires a repository remote (for Git-based deployments) and a dedicated Supabase alpha project. Do not apply these migrations to an unidentified existing project.
 
