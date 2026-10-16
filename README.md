@@ -61,7 +61,9 @@ Abandoned resumes older than 24 hours can be inspected with `node --env-file=.en
 
 ## Private hosted preview
 
-A hosted preview requires a selected repository/host and a dedicated Supabase alpha project. Do not apply these migrations to an unidentified existing project.
+Vercel project: [behind-the-chair](https://vercel.com/adambohannonhousecallpros-projects/behind-the-chair). This checkout is linked through ignored `.vercel/project.json`. It is configured for Next.js, Node 22, `npm ci`, `npm run build`, and Vercel Authentication on all deployments. No deployment or hosted environment variables have been created yet.
+
+The hosted preview still requires a repository remote (for Git-based deployments) and a dedicated Supabase alpha project. Do not apply these migrations to an unidentified existing project.
 
 1. Configure the host's private-preview access protection. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_APP_URL` to the dedicated alpha deployment. The running app does not need a service role key; invitation/maintenance scripts do.
 2. Inspect existing records and migration history, then apply the forward SQL migrations in `supabase/migrations/` to the intended project. Generate types with `npx supabase gen types typescript --project-id YOUR_PROJECT_ID > lib/types/database.ts` after schema changes.

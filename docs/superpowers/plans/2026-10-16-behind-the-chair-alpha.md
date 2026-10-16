@@ -138,7 +138,7 @@ Implement milestones sequentially in reviewable changes. Complete each milestone
 
 ## Local implementation handoff — 2026-10-16
 
-Implemented on `feat/behind-the-chair-alpha`. The original `.env.local` and its configured backend were preserved. A separate Docker-backed local Supabase instance and ignored `.env.alpha` are used for the demo and tests. No remote repository is configured, and no hosted project or deployment target has been confirmed; publication and hosted verification remain outstanding.
+Implemented on `feat/behind-the-chair-alpha`. The original `.env.local` and its configured backend were preserved. A separate Docker-backed local Supabase instance and ignored `.env.alpha` are used for the demo and tests. No remote repository is configured. The Vercel project `behind-the-chair` has since been created and linked locally, with authentication protection on all deployments. No deployment has been created, and the hosted Supabase alpha project remains unconfirmed; publication and hosted verification remain outstanding.
 
 Verified locally:
 
