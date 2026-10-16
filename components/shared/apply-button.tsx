@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { CheckCircle } from "lucide-react";
+import Link from "next/link";
 
 interface ApplyButtonProps {
   jobId: string;
@@ -28,9 +29,14 @@ export function ApplyButton({
   // Employer viewing their own job
   if (userRole === "employer" && isOwnJob) {
     return (
-      <Button variant="outline" disabled className="w-full">
-        This is your listing
-      </Button>
+      <div className="space-y-3">
+        <Button variant="outline" disabled className="w-full">
+          This is your listing
+        </Button>
+        <Button asChild className="w-full">
+          <Link href={`/employer/jobs/${jobId}/edit`}>Edit listing</Link>
+        </Button>
+      </div>
     );
   }
 
