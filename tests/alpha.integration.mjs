@@ -65,12 +65,24 @@ async function cleanup() {
   if (emails.length)
     ok(await admin.from("alpha_invites").delete().in("email", emails));
 }
-await test("uninvited accounts cannot register even through the direct Auth API", async () => {
+await test("business signup defaults to employer even with forged applicant metadata", async () => {
+  const email = `signup-${run}@alpha.example`;
   const result = await anon.auth.signUp({
-    email: `uninvited-${run}@alpha.example`,
+    email,
     password: "Alpha-test-12345!",
+    options: { data: { role: "seeker" } },
   });
-  assert.ok(result.error);
+  assert.equal(result.error, null);
+  ids.push(result.data.user.id);
+  const profile = ok(
+    await admin
+      .from("profiles")
+      .select("role")
+      .eq("id", result.data.user.id)
+      .single(),
+  );
+  assert.equal(profile.role, "employer");
+  await anon.auth.signOut();
 });
 await test("create isolated employer and applicant fixtures", async () => {
   employer = await account("employer");

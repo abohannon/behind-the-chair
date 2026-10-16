@@ -4,6 +4,35 @@ import { safeReturnTo } from "@/lib/auth/return-to";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+export async function signUpBusiness(
+  _state: { error?: string },
+  formData: FormData,
+): Promise<{ error?: string }> {
+  const parsed = z
+    .object({
+      email: z.email(),
+      password: z.string().min(8).max(128),
+    })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success)
+    return { error: "Enter a valid email and a password of 8–128 characters." };
+  const supabase = await createClient();
+  // The database assigns the role; callers cannot choose it through metadata.
+  const { data, error } = await supabase.auth.signUp(parsed.data);
+  if (error)
+    return {
+      error:
+        error.code === "user_already_exists" || error.code === "email_exists"
+          ? "This email already has an account. Sign in or use your invitation link."
+          : "Unable to create your account. Please try again shortly.",
+    };
+  if (!data.session)
+    return {
+      error: "Check your email to confirm your account before signing in.",
+    };
+  redirect("/employer/profile");
+}
+
 export async function signIn(formData: FormData) {
   const parsed = z
     .object({ email: z.email(), password: z.string().min(1) })

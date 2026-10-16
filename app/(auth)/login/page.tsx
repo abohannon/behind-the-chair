@@ -79,9 +79,9 @@ function LoginForm() {
             Forgot your password?
           </Link>
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            Need an invitation?{" "}
+            Hiring for your business?{" "}
             <Link href="/signup" className="text-primary hover:underline">
-              Alpha access
+              Create a business account
             </Link>
           </p>
         </CardContent>
