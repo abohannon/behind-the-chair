@@ -1,7 +1,7 @@
 # Behind the Chair — Private Alpha Plan
 
 Date: 2026-10-16
-Status: Local alpha verified; hosted database configured and deployment verification in progress
+Status: Hosted hiring flow verified; partner access and SMTP remain to configure
 
 This plan replaces the March 2026 thin-thread plan for alpha scope and sequencing. Keep the earlier documents as history. The alpha reuses the existing app; it does not start a new scaffold.
 
@@ -59,7 +59,7 @@ Goal: run the app against a dedicated alpha/test backend and establish account a
 - [x] Restrict application writes: applicants create only their own submissions to active jobs; employers update only permitted hiring fields for their own jobs' applications. Applicants cannot choose a hiring outcome during insertion.
 - [x] Implement invited account acceptance, password setup/recovery, and login routing. Preserve and validate local return destinations so an applicant resumes at the selected job.
 - [x] Ensure confirmation and expired/invalid invitation states have clear recovery paths. Local invitation and recovery emails were exercised across browser contexts.
-- [ ] Verify hosted auth settings enforce the invitation boundary after the target project is selected.
+- [x] Verify hosted auth settings enforce the invitation boundary after the target project is selected.
 - [x] Replace the stale starter README with local setup, required versus optional environment variables, migration commands, and verification instructions.
 
 Acceptance: invited applicant and employer accounts can sign in and recover access. Anonymous visitors and unrelated accounts cannot retrieve applicant information or resumes through direct database/storage requests. Required environment failures are clear; missing Stripe or Resend configuration does not prevent core alpha use.
@@ -110,7 +110,7 @@ Goal: complete and verify the hiring loop in a private hosted preview.
 - [x] Treat new-application email as optional for alpha: dashboard records remain the source of truth. If enabled, configure a verified sender and reliable post-response delivery using the installed framework's supported mechanism. Failure must not lose an application or falsely report that a notification was sent.
 - [x] Add focused automated tests for authorization, application attachment isolation, required contact/resume validation, rating range and privacy, active-job submission, duplicate handling, and job lifecycle. Run relevant lint, type, and build checks.
 - [x] Exercise the full flow in a browser at mobile and desktop widths, including loading, empty, validation, expired invitation, and failure states. Record actual results rather than treating source inspection as runtime proof.
-- [ ] Deploy an access-restricted preview, configure auth callback URLs, and run the hiring loop against that exact deployment. Use synthetic resumes and test identities.
+- [x] Deploy an access-restricted preview, configure auth callback URLs, and run the hiring loop against that exact deployment. Use synthetic resumes and test identities.
 - [ ] Provide the partner with the preview URL, invited accounts, a short walkthrough, known limitations, and a simple feedback channel.
 
 Acceptance: the partner can complete the scenario below without developer intervention. Any missing hosting/account configuration is reported as an explicit handoff blocker; a local build alone does not satisfy this milestone.
@@ -161,4 +161,12 @@ The production Vercel variables were verified. `NEXT_PUBLIC_SUPABASE_URL` was co
 
 Only pending migration `00003_private_alpha.sql` was pushed after a dry run; existing data was preserved. Hosted auth now uses `https://behind-the-chair.vercel.app`, exact callback URLs, invitation-only signup, an enabled email provider, and the repository’s invitation/recovery templates. Custom SMTP remains unconfigured. The invitation script supports `--link` for manual one-time invitations without sending email; self-service recovery email still requires an email provider.
 
-Ignored `.env.hosted` holds local administrative credentials for this project. Vercel has only the three public runtime variables. Automatic Git deployments are enabled; hosted verification results will be recorded after deployment completes. GitHub checks for the initial alpha commit passed.
+Ignored `.env.hosted` holds local administrative credentials for this project. Vercel has only the three public runtime variables. Automatic Git deployments are enabled. GitHub checks passed for commit `85990c1`.
+
+## Hosted verification — 2026-10-16
+
+Production deployment `dpl_48pAfxN5mSjm1JBYg6P4yqBZn5JB` is ready at https://behind-the-chair.vercel.app, built from `85990c1` in the personal Vercel account. Authentication protection remains enabled for all deployments.
+
+The hosted browser hiring scenario passed at desktop and 375px mobile widths: business profile/photo upload, validation without losing input, free job publication, login return to the selected job, required applicant profile, tailored PDF and cover letter, closed-job retry, employer review, persistent private rating, interview stage, filtering, applicant history, and closed-listing history. All ten database/storage integration checks also passed against the hosted backend, covering invitation-only signup, ownership, unrelated-user privacy, resume isolation, application contact snapshots, private ratings, job lifecycle, and manual invitation link generation. Synthetic users, listings, applications, invitations, and uploads were removed afterward. Original hosted counts remain two profiles, one business, one job, and zero applications. The temporary Vercel automation bypass was revoked.
+
+Remaining handoff: invite the partner to the protected Vercel deployment and create their application account using a manual one-time invitation. Custom SMTP and hosted email delivery/recovery remain unconfigured and unverified. Local email tests do not establish hosted email delivery. No real partner invitation has been sent.

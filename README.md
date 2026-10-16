@@ -76,6 +76,8 @@ npm run invite:hosted -- owner@example.com employer --link
 
 These commands use ignored `.env.hosted`, which contains administrative credentials for this cloud project. The runtime Vercel app has only public connection variables. Share each invitation link only with its intended recipient. SMTP is required to enable email invitations and self-service password recovery; the local email inbox is not a hosted email service.
 
+The production hiring loop passed on desktop and mobile, along with ten hosted database/storage integration checks. Temporary test data was removed. Vercel access protection remains enabled; partner access and an application invitation must be arranged before sharing. Hosted email delivery and recovery still await SMTP configuration.
+
 For a future replacement backend or deployment, use the setup steps below. Do not apply migrations to an unidentified project.
 
 1. Configure the host's private-preview access protection. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_APP_URL` to the dedicated alpha deployment. The running app does not need a service role key; invitation/maintenance scripts do.
