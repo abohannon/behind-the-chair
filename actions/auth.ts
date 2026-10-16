@@ -4,7 +4,7 @@ import { safeReturnTo } from "@/lib/auth/return-to";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-export async function signUpBusiness(
+export async function signUp(
   _state: { error?: string },
   formData: FormData,
 ): Promise<{ error?: string }> {
@@ -12,13 +12,19 @@ export async function signUpBusiness(
     .object({
       email: z.email(),
       password: z.string().min(8).max(128),
+      role: z.enum(["employer", "seeker"]),
     })
     .safeParse(Object.fromEntries(formData));
   if (!parsed.success)
     return { error: "Enter a valid email and a password of 8–128 characters." };
   const supabase = await createClient();
-  // The database assigns the role; callers cannot choose it through metadata.
-  const { data, error } = await supabase.auth.signUp(parsed.data);
+  // Only the two public account types are accepted; existing roles cannot change.
+  const { email, password, role } = parsed.data;
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { role } },
+  });
   if (error)
     return {
       error:
@@ -30,7 +36,17 @@ export async function signUpBusiness(
     return {
       error: "Check your email to confirm your account before signing in.",
     };
-  redirect("/employer/profile");
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", data.user!.id)
+    .single();
+  if (profileError || !profile)
+    return {
+      error:
+        "Your account was created, but we could not load your profile. Please sign in again.",
+    };
+  redirect(profile.role === "seeker" ? "/seeker/profile" : "/employer/profile");
 }
 
 export async function signIn(formData: FormData) {

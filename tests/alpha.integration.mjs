@@ -65,24 +65,49 @@ async function cleanup() {
   if (emails.length)
     ok(await admin.from("alpha_invites").delete().in("email", emails));
 }
-await test("business signup defaults to employer even with forged applicant metadata", async () => {
-  const email = `signup-${run}@alpha.example`;
-  const result = await anon.auth.signUp({
-    email,
+await test("public signup accepts either role and metadata updates cannot switch roles", async () => {
+  for (const role of ["employer", "seeker"]) {
+    const result = await anon.auth.signUp({
+      email: `signup-${role}-${run}@alpha.example`,
+      password: "Alpha-test-12345!",
+      options: { data: { role } },
+    });
+    assert.equal(result.error, null);
+    ids.push(result.data.user.id);
+    assert.equal(
+      ok(
+        await anon
+          .from("profiles")
+          .select("role")
+          .eq("id", result.data.user.id)
+          .single(),
+      ).role,
+      role,
+    );
+    ok(
+      await anon.auth.updateUser({
+        data: { role: role === "seeker" ? "employer" : "seeker" },
+      }),
+    );
+    assert.equal(
+      ok(
+        await anon
+          .from("profiles")
+          .select("role")
+          .eq("id", result.data.user.id)
+          .single(),
+      ).role,
+      role,
+    );
+    await anon.auth.signOut();
+  }
+  const invalid = await anon.auth.signUp({
+    email: `invalid-${run}@alpha.example`,
     password: "Alpha-test-12345!",
-    options: { data: { role: "seeker" } },
+    options: { data: { role: "admin" } },
   });
-  assert.equal(result.error, null);
-  ids.push(result.data.user.id);
-  const profile = ok(
-    await admin
-      .from("profiles")
-      .select("role")
-      .eq("id", result.data.user.id)
-      .single(),
-  );
-  assert.equal(profile.role, "employer");
-  await anon.auth.signOut();
+  if (invalid.data.user) ids.push(invalid.data.user.id);
+  assert.ok(invalid.error);
 });
 await test("create isolated employer and applicant fixtures", async () => {
   employer = await account("employer");

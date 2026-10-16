@@ -176,3 +176,7 @@ Remaining handoff: invite the partner to the protected Vercel deployment and cre
 Supersedes the invitation-only business access decision above. Businesses can create an account at `/signup` using email and password and continue to their profile. Applicants still receive their role through the trusted invitation registry. Migration `00004_business_registration.sql` defaults uninvited accounts to employer and ignores role metadata. Existing accounts and invited roles are preserved.
 
 The production domain must be public for this flow; generated deployment URLs and previews remain protected. Email confirmation is disabled during this early alpha because SMTP is not configured. Password reset email still needs SMTP. Posting remains free and Portland-only.
+
+## Applicant self-registration — 2026-10-16
+
+Supersedes the remaining invitation-only applicant restriction. Businesses and applicants can both register at `/signup`, choose their account type, and continue to the matching profile form. Migration `00005_applicant_registration.sql` validates the selected role at creation and preserves trusted invitation assignments. Later user-metadata changes cannot change the stored account role. Existing accounts remain intact. Production is public; previews remain protected. Email confirmation remains disabled pending SMTP setup.

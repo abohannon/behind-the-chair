@@ -201,7 +201,7 @@ web3 = 30
 
 [auth.email]
 # Keep the email provider enabled for invited-user login and recovery.
-# New uninvited accounts receive the employer role in the database trigger.
+# Public signup supports business and applicant accounts.
 enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.

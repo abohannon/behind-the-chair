@@ -21,14 +21,14 @@ Open http://localhost:3000. `alpha:env` writes ignored `.env.alpha` using only t
 
 For an existing local database, apply pending migrations with `npx supabase migration up --local`. Do not reset a database containing data you want to preserve. `npx supabase db reset --local` is only for disposable local fixtures.
 
-Businesses can register at `/signup` without an invitation. Applicants still need an invitation. You can also provision either role manually:
+Businesses and applicants can register at `/signup` without an invitation by choosing their account type. You can also provision either role manually:
 
 ```sh
 npm run invite:alpha -- owner@example.com employer
 npm run invite:alpha -- applicant@example.com seeker
 ```
 
-Invitations stay in the local email inbox. Follow the invitation link to set a password. New uninvited accounts receive the employer role. The service-role-only `alpha_invites` table assigns invited roles; user-editable metadata cannot grant privileges. Email confirmation is disabled for this early alpha because hosted SMTP is not configured.
+Invitations stay in the local email inbox. Follow the invitation link to set a password. New accounts choose employer or applicant at creation. Existing profiles cannot switch roles through metadata or direct updates. The service-role-only `alpha_invites` table still assigns roles for manual invitations. Email confirmation is disabled for this early alpha because hosted SMTP is not configured.
 
 ## Verification
 
@@ -49,7 +49,7 @@ To build against the local backend, stop the dev server first, then run `npm run
 
 ## Data boundaries
 
-- Businesses can self-register; applicants are invited. Applicants and employers use separate roles; one owner per business.
+- Businesses and applicants can self-register. Applicants and employers use separate roles; one owner per business.
 - Public access is limited to business information and active jobs. Applicant profiles are visible to their owner and businesses receiving their applications.
 - A submitted application preserves the name, email, phone, cover letter, and original PDF supplied for that application. Profile updates do not rewrite submitted contact details or attachments.
 - Resumes upload directly to private Supabase storage, avoiding web-host request-size limits. Each attempt gets a unique path. Submitted files cannot be overwritten or removed by applicants. Downloads use five-minute signed URLs.
@@ -67,7 +67,7 @@ Use the personal CLI login explicitly: `npx vercel --global-config "$HOME/Librar
 
 GitHub repository: [abohannon/behind-the-chair](https://github.com/abohannon/behind-the-chair), with `main` as the primary branch. Automatic Vercel deployments are enabled in `vercel.json`. The hosted app uses `https://itpvubcxmvwxawibkicr.supabase.co` (the existing “Salon App” project in the “Adam Bohannon” organization). The forward alpha migration has been applied, preserving existing accounts and listings.
 
-Hosted authentication points to `https://behind-the-chair.vercel.app`, with public business signup and invited applicant accounts and the application’s invitation/recovery email templates installed. Custom SMTP is not configured yet. For the private alpha, create a one-time invitation link without sending email:
+Hosted authentication points to `https://behind-the-chair.vercel.app`, with public business and applicant signup and the application’s invitation/recovery email templates installed. Custom SMTP is not configured yet. For the private alpha, create a one-time invitation link without sending email:
 
 ```sh
 npm run invite:hosted -- tester@example.com seeker --link
@@ -76,13 +76,13 @@ npm run invite:hosted -- owner@example.com employer --link
 
 These commands use ignored `.env.hosted`, which contains administrative credentials for this cloud project. The runtime Vercel app has only public connection variables. Share each invitation link only with its intended recipient. SMTP is required to enable email invitations and self-service password recovery; the local email inbox is not a hosted email service.
 
-The production hiring loop passed on desktop and mobile, along with ten hosted database/storage integration checks. Temporary test data was removed. The production signup page is public; businesses do not need invitation links or Vercel accounts. Generated deployment URLs and previews remain protected. Hosted email delivery and recovery still await SMTP configuration.
+The production hiring loop passed on desktop and mobile, along with ten hosted database/storage integration checks. Temporary test data was removed. The production signup page is public; businesses and applicants do not need invitation links or Vercel accounts. Generated deployment URLs and previews remain protected. Hosted email delivery and recovery still await SMTP configuration.
 
 For a future replacement backend or deployment, use the setup steps below. Do not apply migrations to an unidentified project.
 
 1. Configure the host's private-preview access protection. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_APP_URL` to the dedicated alpha deployment. The running app does not need a service role key; invitation/maintenance scripts do.
 2. Inspect existing records and migration history, then apply the forward SQL migrations in `supabase/migrations/` to the intended project. Generate types with `npx supabase gen types typescript --project-id YOUR_PROJECT_ID > lib/types/database.ts` after schema changes.
-3. In hosted Supabase Auth, enable signup, disable email confirmation while SMTP is unavailable, set the site URL to the production origin, and allow the exact `/callback` URL. The database trigger defaults new uninvited accounts to employer. Local TOML settings do not configure a hosted project automatically.
+3. In hosted Supabase Auth, enable signup, disable email confirmation while SMTP is unavailable, set the site URL to the production origin, and allow the exact `/callback` URL. The database trigger validates the selected public role at account creation; trusted invitations retain their assigned role. Local TOML settings do not configure a hosted project automatically.
 4. Set the invitation and recovery email templates to the corresponding files in `supabase/templates/`. Their token-hash links work across browsers/devices. Configure auth email delivery for invited testers.
 5. To send a hosted invitation, load that environment explicitly and run `node scripts/invite.mjs email@example.com employer` (or `seeker`). The `invite:alpha` shortcut always targets local `.env.alpha`.
 6. Run the partner walkthrough against that exact hosted preview with synthetic accounts. Verify a second business cannot fetch unrelated applicant information or ratings. A passing local build is not evidence of a working hosted setup.

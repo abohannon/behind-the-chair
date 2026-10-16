@@ -1,7 +1,7 @@
 "use client";
 import { startTransition, useActionState } from "react";
 import Link from "next/link";
-import { signUpBusiness } from "@/actions/auth";
+import { signUp } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,17 +13,15 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 export default function SignupPage() {
-  const [state, action, pending] = useActionState(signUpBusiness, {});
+  const [state, action, pending] = useActionState(signUp, {});
   return (
     <div className="mx-auto max-w-md px-4 py-16">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">
-            Create your business account
-          </CardTitle>
+          <CardTitle className="text-2xl">Create your account</CardTitle>
           <CardDescription>
-            Join Behind the Chair’s Portland alpha. Create a profile and post
-            jobs for free.
+            Join Behind the Chair’s Portland alpha. Find your next role or hire
+            for your business.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -35,6 +33,22 @@ export default function SignupPage() {
               startTransition(() => action(data));
             }}
           >
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">I’m here to</legend>
+              <label className="flex items-center gap-2">
+                <input type="radio" name="role" value="seeker" required />
+                Find work
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="role"
+                  value="employer"
+                  defaultChecked
+                />
+                Hire for my business
+              </label>
+            </fieldset>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -66,7 +80,7 @@ export default function SignupPage() {
               </p>
             )}
             <Button className="w-full" disabled={pending}>
-              {pending ? "Creating account…" : "Create business account"}
+              {pending ? "Creating account…" : "Create account"}
             </Button>
           </form>
           <p className="mt-4 text-sm">
@@ -74,10 +88,6 @@ export default function SignupPage() {
             <Link href="/login" className="underline">
               Sign in
             </Link>
-          </p>
-          <p className="mt-4 text-sm text-muted-foreground">
-            Looking for work? Applicant accounts are currently available by
-            invitation.
           </p>
         </CardContent>
       </Card>

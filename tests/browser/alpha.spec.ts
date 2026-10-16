@@ -87,36 +87,53 @@ test.afterAll(async () => {
   }
   await admin.from("alpha_invites").delete().in("email", emails);
 });
-test("business self-registration creates an employer profile and handles duplicate email", async ({
-  page,
-}) => {
-  const email = `signup-browser-${suffix}@alpha.example`;
-  emails.push(email);
-  await page.goto("/signup");
-  await page.getByLabel("Email", { exact: true }).fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password);
-  await page
-    .getByRole("button", { name: "Create business account", exact: true })
-    .click();
-  await expect(page).toHaveURL(/\/employer\/profile$/);
-  const { data, error } = await admin.auth.admin.listUsers();
-  if (error) throw error;
-  const created = data.users.find((user) => user.email === email);
-  if (created) users.push(created.id);
-  await expect(
-    page.getByRole("heading", { name: "Your business", exact: true }),
-  ).toBeVisible();
-  await page.context().clearCookies();
-  await page.goto("/signup");
-  await page.getByLabel("Email", { exact: true }).fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password);
-  await page
-    .getByRole("button", { name: "Create business account", exact: true })
-    .click();
-  await expect(
-    page.getByRole("alert").filter({ hasText: "already has an account" }),
-  ).toBeVisible();
-});
+for (const role of ["employer", "seeker"] as const) {
+  test(`${role} self-registration creates the right profile and handles duplicate email`, async ({
+    page,
+  }) => {
+    const email = `signup-browser-${role}-${suffix}@alpha.example`;
+    emails.push(email);
+    await page.goto("/signup");
+    await page
+      .getByRole("radio", {
+        name: role === "seeker" ? "Find work" : "Hire for my business",
+        exact: true,
+      })
+      .check();
+    await page.getByLabel("Email", { exact: true }).fill(email);
+    await page.getByLabel("Password", { exact: true }).fill(password);
+    await page
+      .getByRole("button", { name: "Create account", exact: true })
+      .click();
+    await expect(page).toHaveURL(new RegExp(`/${role}/profile$`));
+    const { data, error } = await admin.auth.admin.listUsers();
+    if (error) throw error;
+    const created = data.users.find((user) => user.email === email);
+    if (created) users.push(created.id);
+    await expect(
+      page.getByRole("heading", {
+        name: role === "seeker" ? "Your profile" : "Your business",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await page.context().clearCookies();
+    await page.goto("/signup");
+    await page
+      .getByRole("radio", {
+        name: role === "seeker" ? "Find work" : "Hire for my business",
+        exact: true,
+      })
+      .check();
+    await page.getByLabel("Email", { exact: true }).fill(email);
+    await page.getByLabel("Password", { exact: true }).fill(password);
+    await page
+      .getByRole("button", { name: "Create account", exact: true })
+      .click();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "already has an account" }),
+    ).toBeVisible();
+  });
+}
 test("business posts, applicant applies with a tailored resume, business reviews and rates, mobile history stays private", async ({
   browser,
   page,
