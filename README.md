@@ -61,7 +61,9 @@ Abandoned resumes older than 24 hours can be inspected with `node --env-file=.en
 
 ## Private hosted preview
 
-Vercel setup is pending authentication to the personal account. The empty project mistakenly created in the Housecall Pro account was deleted, and its local project link was removed. No deployment or hosted environment variables were created.
+Vercel project: [behind-the-chair](https://vercel.com/adams-projects-a0f5e935/behind-the-chair), owned by the personal account `abohannon@protonmail.com` under **Adam’s projects**. This checkout is linked through ignored `.vercel/project.json`. Next.js, Node 22, `npm ci`, `npm run build`, and authentication protection on all deployments are configured. No deployment or hosted environment variables have been created.
+
+Use the personal CLI login explicitly: `npx vercel --global-config "$HOME/Library/Application Support/com.vercel.cli-personal"`. The default CLI credentials belong to the work account. The empty project mistakenly created there was deleted.
 
 The hosted preview still requires a repository remote (for Git-based deployments) and a dedicated Supabase alpha project. Do not apply these migrations to an unidentified existing project.
 

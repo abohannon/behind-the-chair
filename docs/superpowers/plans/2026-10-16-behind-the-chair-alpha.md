@@ -138,7 +138,7 @@ Implement milestones sequentially in reviewable changes. Complete each milestone
 
 ## Local implementation handoff — 2026-10-16
 
-Implemented on `feat/behind-the-chair-alpha`. The original `.env.local` and its configured backend were preserved. A separate Docker-backed local Supabase instance and ignored `.env.alpha` are used for the demo and tests. No remote repository is configured. The empty Vercel project mistakenly created in the Housecall Pro account was deleted and its local project link removed. Vercel creation is pending authentication to the personal account. No deployment has been created, and the hosted Supabase alpha project remains unconfirmed; publication and hosted verification remain outstanding.
+Implemented on `feat/behind-the-chair-alpha`. The original `.env.local` and its configured backend were preserved. A separate Docker-backed local Supabase instance and ignored `.env.alpha` are used for the demo and tests. No remote repository is configured. The empty Vercel project mistakenly created in the Housecall Pro account was deleted. The project `behind-the-chair` is now created and linked under the verified personal account `abohannon@protonmail.com`, team **Adam’s projects** (`adams-projects-a0f5e935`), with authentication protection on all deployments. Its separate CLI login is stored under `$HOME/Library/Application Support/com.vercel.cli-personal`; default CLI credentials remain the work account. No deployment has been created, and the hosted Supabase alpha project remains unconfirmed; publication and hosted verification remain outstanding.
 
 Verified locally:
 
