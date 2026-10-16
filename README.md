@@ -65,7 +65,9 @@ Vercel project: [behind-the-chair](https://vercel.com/adams-projects-a0f5e935/be
 
 Use the personal CLI login explicitly: `npx vercel --global-config "$HOME/Library/Application Support/com.vercel.cli-personal"`. The default CLI credentials belong to the work account. The empty project mistakenly created there was deleted.
 
-The hosted preview still requires a repository remote (for Git-based deployments) and a dedicated Supabase alpha project. Do not apply these migrations to an unidentified existing project.
+GitHub repository: [abohannon/behind-the-chair](https://github.com/abohannon/behind-the-chair), with `main` as the primary branch. Automatic Vercel deployments are temporarily disabled through `git.deploymentEnabled: false` in `vercel.json` until the hosted backend is configured. Remove that setting when the environment is ready.
+
+The hosted preview still requires a dedicated Supabase alpha project. Do not apply these migrations to an unidentified existing project.
 
 1. Configure the host's private-preview access protection. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_APP_URL` to the dedicated alpha deployment. The running app does not need a service role key; invitation/maintenance scripts do.
 2. Inspect existing records and migration history, then apply the forward SQL migrations in `supabase/migrations/` to the intended project. Generate types with `npx supabase gen types typescript --project-id YOUR_PROJECT_ID > lib/types/database.ts` after schema changes.
