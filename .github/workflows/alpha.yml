@@ -1,0 +1,38 @@
+name: Alpha checks
+on:
+  push:
+  pull_request:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.84.4
+      - run: supabase start -x studio,logflare,vector,imgproxy,realtime
+      - run: npm run alpha:env
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:alpha
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build:alpha
+      - run: |
+          node scripts/run-alpha.mjs start > /tmp/alpha-server.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://localhost:3000/login > /dev/null; then break; fi
+            sleep 1
+          done
+          npm run test:browser
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-failure-traces
+          path: test-results/

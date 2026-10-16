@@ -1,96 +1,99 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth/require-user";
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { formatRelativeDate } from "@/lib/utils";
-
-export default async function SeekerApplicationsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: seekerProfile } = await supabase
+export default async function Applications() {
+  const { supabase, user } = await requireUser("seeker");
+  const { data: seeker } = await supabase
     .from("seeker_profiles")
     .select("id")
     .eq("user_id", user.id)
-    .single();
-
-  if (!seekerProfile) {
-    return (
-      <div>
-        <h1 className="text-2xl font-bold">My Applications</h1>
-        <p className="mt-2 text-muted-foreground">
-          Complete your profile to start applying to jobs.
-        </p>
-      </div>
-    );
-  }
-
-  const { data: applications } = await supabase
-    .from("applications")
-    .select(
-      "id, status, applied_at, job_posts(id, title, city, state, employer_profiles(salon_name))"
-    )
-    .eq("seeker_id", seekerProfile.id)
-    .order("applied_at", { ascending: false });
-
+    .maybeSingle();
+  const { data: apps, error } = seeker
+    ? await supabase
+        .from("applications")
+        .select(
+          "id,status,applied_at,cover_letter,contact_email,phone,resume_path,resume_name,job_posts(id,title,city,state,status,employer_profiles(salon_name))",
+        )
+        .eq("seeker_id", seeker.id)
+        .order("applied_at", { ascending: false })
+    : { data: [], error: null };
+  const entries = await Promise.all(
+    (apps ?? []).map(async (app) => {
+      const { data } = app.resume_path
+        ? await supabase.storage
+            .from("resumes")
+            .createSignedUrl(app.resume_path, 300)
+        : { data: null };
+      return { ...app, resumeUrl: data?.signedUrl };
+    }),
+  );
   return (
-    <div>
-      <h1 className="mb-6 text-2xl font-bold">My Applications</h1>
-      {!applications || applications.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              No applications yet.{" "}
-              <Link href="/jobs" className="text-primary hover:underline">
-                Browse jobs
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <h1 className="text-3xl font-semibold">My applications</h1>
+      {error ? (
+        <p role="alert">Unable to load your applications. Please try again.</p>
+      ) : entries.length === 0 ? (
+        <p className="rounded-xl border bg-card p-8">
+          No applications yet.{" "}
+          <Link className="underline" href="/jobs">
+            Find your next role
+          </Link>
+        </p>
       ) : (
-        <div className="space-y-3">
-          {applications.map((app) => {
-            const job = app.job_posts as any;
-            return (
-              <Card key={app.id}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-base">
-                        <Link
-                          href={`/jobs/${job?.id}`}
-                          className="hover:underline"
-                        >
-                          {job?.title}
-                        </Link>
-                      </CardTitle>
-                      <CardDescription>
-                        {job?.employer_profiles?.salon_name} &middot;{" "}
-                        {job?.city}, {job?.state}
-                      </CardDescription>
-                    </div>
-                    <StatusBadge status={app.status} />
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <p className="text-xs text-muted-foreground">
-                    Applied {formatRelativeDate(app.applied_at)}
-                  </p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        entries.map((app) => (
+          <article
+            key={app.id}
+            className="space-y-4 rounded-xl border bg-card p-6"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold">
+                  {app.job_posts?.status === "active" ? (
+                    <Link
+                      className="hover:underline"
+                      href={`/jobs/${app.job_posts.id}`}
+                    >
+                      {app.job_posts.title}
+                    </Link>
+                  ) : (
+                    (app.job_posts?.title ?? "Listing unavailable")
+                  )}
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {app.job_posts?.employer_profiles?.salon_name} · Applied{" "}
+                  {formatRelativeDate(app.applied_at)}
+                  {app.job_posts?.status === "closed"
+                    ? " · Listing closed"
+                    : ""}
+                </p>
+              </div>
+              <StatusBadge status={app.status} />
+            </div>
+            <p className="text-sm">
+              Submitted contact: {app.contact_email ?? "Not recorded"}
+              {app.phone ? ` · ${app.phone}` : ""}
+            </p>
+            {app.resumeUrl && (
+              <a
+                className="inline-block text-sm underline"
+                href={app.resumeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Submitted resume · {app.resume_name ?? "PDF"}
+              </a>
+            )}
+            {app.cover_letter && (
+              <details className="text-sm">
+                <summary className="cursor-pointer font-medium">
+                  Your cover letter
+                </summary>
+                <p className="mt-3 whitespace-pre-wrap">{app.cover_letter}</p>
+              </details>
+            )}
+          </article>
+        ))
       )}
     </div>
   );

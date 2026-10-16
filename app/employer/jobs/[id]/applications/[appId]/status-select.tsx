@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { APPLICATION_STATUSES } from "@/lib/constants/categories";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export function StatusSelect({
   applicationId,
@@ -19,6 +20,7 @@ export function StatusSelect({
   applicationId: string;
   currentStatus: string;
 }) {
+  const router = useRouter();
   const [status, setStatus] = useState(currentStatus);
   const [loading, setLoading] = useState(false);
 
@@ -31,6 +33,7 @@ export function StatusSelect({
     } else {
       setStatus(newStatus);
       toast.success("Status updated");
+      router.refresh();
     }
   }
 

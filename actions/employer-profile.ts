@@ -1,139 +1,158 @@
 "use server";
-
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth/require-user";
+import { websiteSchema, instagramHandle } from "@/lib/validation/alpha";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
-
-const employerProfileSchema = z.object({
-  salonName: z.string().min(1, "Salon name is required"),
-  locationCity: z.string().min(1, "City is required"),
-  locationState: z.string().min(1, "State is required"),
-  description: z.string().min(1, "Description is required"),
-  websiteUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
-  instagramHandle: z.string().optional(),
-});
-
-export type EmployerProfileState = {
-  error?: string;
-  fieldErrors?: Record<string, string>;
-} | null;
-
 export async function upsertEmployerProfile(
-  _prevState: EmployerProfileState,
-  formData: FormData
-): Promise<EmployerProfileState> {
-  const parsed = employerProfileSchema.safeParse({
-    salonName: formData.get("salonName"),
-    locationCity: formData.get("locationCity"),
-    locationState: formData.get("locationState"),
-    description: formData.get("description"),
-    websiteUrl: formData.get("websiteUrl"),
-    instagramHandle: formData.get("instagramHandle"),
-  });
-
-  if (!parsed.success) {
-    const fieldErrors: Record<string, string> = {};
-    for (const issue of parsed.error.issues) {
-      const field = issue.path[0];
-      if (field) fieldErrors[String(field)] = issue.message;
-    }
-    return { fieldErrors };
+  _state: { error?: string },
+  data: FormData,
+): Promise<{ error?: string }> {
+  const { supabase, user } = await requireUser("employer");
+  const parsed = z
+    .object({
+      salonName: z.string().trim().min(1).max(200),
+      description: z.string().trim().min(1).max(10000),
+      websiteUrl: websiteSchema,
+    })
+    .safeParse(Object.fromEntries(data));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  let instagram: string | null;
+  try {
+    instagram = instagramHandle(String(data.get("instagramHandle") ?? ""));
+  } catch {
+    return { error: "Enter a valid Instagram handle or profile URL" };
   }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "You must be logged in" };
-  }
-
-  const { salonName, locationCity, locationState, description, websiteUrl, instagramHandle } =
-    parsed.data;
-
   const { error } = await supabase.from("employer_profiles").upsert(
     {
       user_id: user.id,
-      salon_name: salonName,
-      location_city: locationCity,
-      location_state: locationState,
-      description,
-      website_url: websiteUrl || null,
-      instagram_handle: instagramHandle || null,
+      salon_name: parsed.data.salonName,
+      description: parsed.data.description,
+      website_url: parsed.data.websiteUrl || null,
+      instagram_handle: instagram,
+      location_city: "Portland",
+      location_state: "OR",
     },
-    { onConflict: "user_id" }
+    { onConflict: "user_id" },
   );
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  await supabase
+  if (error)
+    return { error: "Unable to save your business. Please try again." };
+  const { error: profileError } = await supabase
     .from("profiles")
     .update({ profile_complete: true })
     .eq("id", user.id);
-
-  redirect("/employer/dashboard");
+  if (profileError)
+    return { error: "Unable to finish your profile. Please try again." };
+  redirect("/employer/profile?saved=1");
 }
-
-export type UploadLogoState = {
-  error?: string;
-  logoUrl?: string;
-} | null;
-
-export async function uploadLogo(
-  _prevState: UploadLogoState,
-  formData: FormData
-): Promise<UploadLogoState> {
-  const file = formData.get("logo") as File | null;
-
-  if (!file || file.size === 0) {
-    return { error: "No file selected" };
-  }
-
-  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-  if (!allowedTypes.includes(file.type)) {
-    return { error: "Only JPEG, PNG, and WebP images are allowed" };
-  }
-
-  const maxSize = 5 * 1024 * 1024; // 5MB
-  if (file.size > maxSize) {
-    return { error: "File must be under 5MB" };
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "You must be logged in" };
-  }
-
-  const ext = file.type.split("/")[1] === "jpeg" ? "jpg" : file.type.split("/")[1];
-  const path = `${user.id}/logo.${ext}`;
-
-  const { error: uploadError } = await supabase.storage
+export async function uploadBusinessImage(
+  _state: { error?: string },
+  data: FormData,
+) {
+  const { supabase, user } = await requireUser("employer");
+  const { data: business } = await supabase
+    .from("employer_profiles")
+    .select("id,photos,logo_url")
+    .eq("user_id", user.id)
+    .single();
+  if (!business)
+    return { error: "Save your business details before uploading images." };
+  const path = String(data.get("path") ?? "");
+  if (!path.startsWith(`${user.id}/`) || path.includes(".."))
+    return { error: "Upload your image again." };
+  const { data: file, error: fileError } = await supabase.storage
     .from("logos")
-    .upload(path, file, { upsert: true });
-
-  if (uploadError) {
-    return { error: uploadError.message };
-  }
-
+    .download(path);
+  if (
+    fileError ||
+    !file ||
+    file.size > 5 * 1024 * 1024 ||
+    !["image/jpeg", "image/png", "image/webp"].includes(file.type)
+  )
+    return { error: "Choose a JPEG, PNG or WebP image, 5 MB or smaller." };
+  const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  const validImage =
+    (file.type === "image/png" &&
+      bytes[0] === 137 &&
+      bytes[1] === 80 &&
+      bytes[2] === 78 &&
+      bytes[3] === 71) ||
+    (file.type === "image/jpeg" &&
+      bytes[0] === 255 &&
+      bytes[1] === 216 &&
+      bytes[2] === 255) ||
+    (file.type === "image/webp" &&
+      String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
+      String.fromCharCode(...bytes.slice(8, 12)) === "WEBP");
+  if (!validImage)
+    return { error: "This file does not contain a supported image." };
+  const photos = Array.isArray(business.photos)
+    ? business.photos.filter((v): v is string => typeof v === "string")
+    : [];
+  const isLogo = data.get("kind") === "logo";
+  if (!isLogo && photos.length >= 5)
+    return { error: "Your gallery can contain up to five photos." };
   const {
     data: { publicUrl },
   } = supabase.storage.from("logos").getPublicUrl(path);
-
-  const { error: updateError } = await supabase
+  const { data: updated, error: saveError } = await supabase
     .from("employer_profiles")
-    .update({ logo_url: publicUrl })
-    .eq("user_id", user.id);
-
-  if (updateError) {
-    return { error: updateError.message };
+    .update(
+      isLogo ? { logo_url: publicUrl } : { photos: [...photos, publicUrl] },
+    )
+    .eq("id", business.id)
+    .select("id")
+    .single();
+  if (saveError || !updated) {
+    await supabase.storage.from("logos").remove([path]);
+    return { error: "Unable to attach image. Please try again." };
   }
-
-  return { logoUrl: publicUrl };
+  revalidatePath("/employer/profile");
+  return {};
+}
+export async function removeBusinessPhoto(data: FormData) {
+  const { supabase, user } = await requireUser("employer");
+  const url = String(data.get("url") ?? "");
+  const { data: business } = await supabase
+    .from("employer_profiles")
+    .select("id,photos")
+    .eq("user_id", user.id)
+    .single();
+  if (
+    !business ||
+    !Array.isArray(business.photos) ||
+    !business.photos.includes(url)
+  )
+    throw new Error("Photo not found");
+  const { error } = await supabase
+    .from("employer_profiles")
+    .update({ photos: business.photos.filter((p) => p !== url) })
+    .eq("id", business.id);
+  if (error) throw new Error("Unable to remove photo");
+  const prefix = supabase.storage.from("logos").getPublicUrl(`${user.id}/`)
+    .data.publicUrl;
+  if (url.startsWith(prefix))
+    await supabase.storage
+      .from("logos")
+      .remove([`${user.id}/${url.slice(prefix.length)}`]);
+  revalidatePath("/employer/profile");
+}
+export async function moveBusinessPhoto(data: FormData) {
+  const { supabase, user } = await requireUser("employer");
+  const { data: b } = await supabase
+    .from("employer_profiles")
+    .select("id,photos")
+    .eq("user_id", user.id)
+    .single();
+  if (!b || !Array.isArray(b.photos)) throw new Error("Business not found");
+  const photos = [...b.photos];
+  const index = photos.indexOf(String(data.get("url")));
+  if (index <= 0) return;
+  [photos[index - 1], photos[index]] = [photos[index], photos[index - 1]];
+  const { error } = await supabase
+    .from("employer_profiles")
+    .update({ photos })
+    .eq("id", b.id);
+  if (error) throw new Error("Unable to reorder photos");
+  revalidatePath("/employer/profile");
 }

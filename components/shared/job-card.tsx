@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MapPin, Clock } from "lucide-react";
-import { formatPayRange, formatRelativeDate } from "@/lib/utils";
+import { formatCompensation, formatRelativeDate } from "@/lib/utils";
 import { JOB_TYPES, EXPERIENCE_LEVELS } from "@/lib/constants/categories";
 
 interface JobCardProps {
@@ -18,6 +18,9 @@ interface JobCardProps {
     pay_range_low: number | null;
     pay_range_high: number | null;
     posted_at: string | null;
+    pay_unit?: string | null;
+    commission_percent?: number | null;
+    arrangement?: string;
     employer_profiles: {
       salon_name: string;
       logo_url: string | null;
@@ -38,9 +41,7 @@ export function JobCard({ job }: JobCardProps) {
         <CardHeader className="pb-3">
           <div className="flex items-start gap-3">
             <Avatar className="h-10 w-10">
-              <AvatarImage
-                src={job.employer_profiles?.logo_url ?? undefined}
-              />
+              <AvatarImage src={job.employer_profiles?.logo_url ?? undefined} />
               <AvatarFallback>
                 {job.employer_profiles?.salon_name?.[0] ?? "S"}
               </AvatarFallback>
@@ -65,9 +66,7 @@ export function JobCard({ job }: JobCardProps) {
               {job.city}, {job.state}
             </span>
             {(job.pay_range_low || job.pay_range_high) && (
-              <span>
-                {formatPayRange(job.pay_range_low, job.pay_range_high)}
-              </span>
+              <span>{formatCompensation(job)}</span>
             )}
             {job.posted_at && (
               <span className="flex items-center gap-1">

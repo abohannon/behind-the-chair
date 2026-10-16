@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, ExternalLink, Globe } from "lucide-react";
+import { ExternalLink, Globe } from "lucide-react";
 
 export default async function SeekerProfilePage({
   params,
@@ -38,13 +38,13 @@ export default async function SeekerProfilePage({
   const { data: seeker } = await supabase
     .from("seeker_profiles")
     .select(
-      "id, user_id, headline, city, state, specialties, years_experience, bio, resume_url, portfolio_url, instagram_handle, profiles(full_name, avatar_url)"
+      "id, user_id, headline, city, state, specialties, years_experience, bio, resume_url, portfolio_url, instagram_handle, profiles(full_name, avatar_url)",
     )
     .eq("id", id)
     .single();
   if (!seeker) notFound();
 
-  const baseProfile = seeker.profiles as any;
+  const baseProfile = seeker.profiles;
   const name = baseProfile?.full_name ?? "Unknown";
   const avatarUrl = baseProfile?.avatar_url;
   const initials = name
@@ -54,15 +54,6 @@ export default async function SeekerProfilePage({
     .toUpperCase()
     .slice(0, 2);
   const specialties = (seeker.specialties as string[]) ?? [];
-
-  // Generate signed URL for resume
-  let resumeUrl: string | null = null;
-  if (seeker.resume_url) {
-    const { data: signedUrl } = await supabase.storage
-      .from("resumes")
-      .createSignedUrl(seeker.resume_url, 3600);
-    resumeUrl = signedUrl?.signedUrl ?? null;
-  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -130,15 +121,6 @@ export default async function SeekerProfilePage({
 
           {/* Links */}
           <div className="flex flex-wrap gap-2">
-            {resumeUrl && (
-              <Button variant="outline" size="sm" asChild>
-                <a href={resumeUrl} target="_blank" rel="noopener noreferrer">
-                  <Download className="mr-2 h-4 w-4" />
-                  Download Resume
-                </a>
-              </Button>
-            )}
-
             {seeker.portfolio_url && (
               <Button variant="outline" size="sm" asChild>
                 <a

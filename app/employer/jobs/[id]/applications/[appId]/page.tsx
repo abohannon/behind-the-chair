@@ -1,219 +1,139 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect, notFound } from "next/navigation";
+import { requireUser } from "@/lib/auth/require-user";
+import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { formatRelativeDate } from "@/lib/utils";
 import { StatusSelect } from "./status-select";
-import { Download, ExternalLink, Globe } from "lucide-react";
-
-export default async function ApplicationDetailPage({
+import { RatingSelect } from "./rating-select";
+import { formatRelativeDate } from "@/lib/utils";
+export default async function ApplicationDetail({
   params,
 }: {
   params: Promise<{ id: string; appId: string }>;
 }) {
+  const { supabase } = await requireUser("employer");
   const { id, appId } = await params;
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  // Verify employer owns this job
-  const { data: employer } = await supabase
-    .from("employer_profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-  if (!employer) redirect("/employer/profile");
-
-  const { data: job } = await supabase
-    .from("job_posts")
-    .select("id, title")
-    .eq("id", id)
-    .eq("employer_id", employer.id)
-    .single();
-  if (!job) notFound();
-
-  // Fetch application with seeker data
-  const { data: application } = await supabase
+  const { data: owns } = await supabase.rpc("owns_job", { job_id: id });
+  if (!owns) notFound();
+  const { data: app, error } = await supabase
     .from("applications")
     .select(
-      "id, status, applied_at, cover_letter, seeker_profiles(id, user_id, headline, city, state, specialties, years_experience, bio, resume_url, portfolio_url, instagram_handle, profiles(full_name, avatar_url))"
+      "*,seeker_profiles(*,profiles(full_name)),job_posts(title),application_ratings(rating)",
     )
     .eq("id", appId)
     .eq("job_post_id", id)
     .single();
-  if (!application) notFound();
-
-  const seeker = application.seeker_profiles as any;
-  const profile = seeker?.profiles as any;
-  const name = profile?.full_name ?? "Unknown";
-  const avatarUrl = profile?.avatar_url;
-  const initials = name
-    .split(" ")
-    .map((n: string) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-  const specialties = (seeker?.specialties as string[]) ?? [];
-
-  // Generate signed URL for resume if available
-  let resumeUrl: string | null = null;
-  if (seeker?.resume_url) {
-    const { data: signedUrl } = await supabase.storage
+  if (error || !app) notFound();
+  const seeker = app.seeker_profiles;
+  const name = app.submitted_name ?? seeker?.profiles?.full_name ?? "Applicant";
+  let resume: string | null = null;
+  if (app.resume_path) {
+    const { data } = await supabase.storage
       .from("resumes")
-      .createSignedUrl(seeker.resume_url, 3600);
-    resumeUrl = signedUrl?.signedUrl ?? null;
+      .createSignedUrl(app.resume_path, 300);
+    resume = data?.signedUrl ?? null;
   }
-
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
+    <div className="mx-auto max-w-3xl space-y-6">
       <Link
+        className="text-sm underline"
         href={`/employer/jobs/${id}/applications`}
-        className="text-sm text-muted-foreground hover:underline"
       >
-        &larr; Back to Applications
+        ← All candidates
       </Link>
-
-      {/* Header */}
-      <Card className="mt-4">
-        <CardHeader className="flex-row items-center gap-4 space-y-0">
-          <Avatar className="h-16 w-16">
-            <AvatarImage src={avatarUrl ?? undefined} alt={name} />
-            <AvatarFallback className="text-lg">{initials}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <CardTitle>{name}</CardTitle>
-            <CardDescription>
-              {seeker?.headline && <>{seeker.headline}</>}
-              {seeker?.city && seeker?.state && (
-                <>
-                  {seeker?.headline ? " · " : ""}
-                  {seeker.city}, {seeker.state}
-                </>
-              )}
-            </CardDescription>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Applied {formatRelativeDate(application.applied_at)} for{" "}
-              <Link
-                href={`/jobs/${job.id}`}
-                className="underline hover:text-foreground"
+      <section className="space-y-5 rounded-xl border bg-card p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="eyebrow">{app.job_posts?.title}</p>
+            <h1 className="mt-2 text-3xl font-semibold">{name}</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Applied {formatRelativeDate(app.applied_at)}
+            </p>
+          </div>
+          <StatusSelect applicationId={app.id} currentStatus={app.status} />
+        </div>
+        <div className="flex flex-wrap gap-4 text-sm">
+          {app.contact_email && (
+            <a className="underline" href={`mailto:${app.contact_email}`}>
+              {app.contact_email}
+            </a>
+          )}
+          {app.phone && (
+            <a
+              className="underline"
+              href={`tel:${app.phone.replace(/[^+\d]/g, "")}`}
+            >
+              {app.phone}
+            </a>
+          )}
+        </div>
+        {!app.contact_email && (
+          <p className="text-sm text-muted-foreground">
+            This earlier application has no submitted contact details.
+          </p>
+        )}
+        <RatingSelect
+          applicationId={app.id}
+          initial={app.application_ratings?.rating ?? null}
+        />
+      </section>
+      <section className="space-y-4 rounded-xl border bg-card p-6">
+        <h2 className="text-xl font-semibold">Application</h2>
+        {resume ? (
+          <a
+            className="inline-block rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+            href={resume}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open resume · {app.resume_name ?? "PDF"}
+          </a>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {app.resume_path
+              ? "Resume could not be loaded. Refresh to try again."
+              : "No application-specific resume on this earlier submission."}
+          </p>
+        )}
+        <h3 className="font-medium">Cover letter</h3>
+        <p className="whitespace-pre-wrap text-sm leading-relaxed">
+          {app.cover_letter || "No cover letter provided."}
+        </p>
+      </section>
+      <section className="space-y-4 rounded-xl border bg-card p-6">
+        <h2 className="text-xl font-semibold">Current profile</h2>
+        <p className="font-medium">{seeker?.headline}</p>
+        <p className="whitespace-pre-wrap text-sm leading-relaxed">
+          {seeker?.bio || "No bio provided."}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {[seeker?.city, seeker?.state].filter(Boolean).join(", ")}
+          {seeker?.years_experience != null
+            ? ` · ${seeker.years_experience} years of experience`
+            : ""}
+        </p>
+        <div className="flex flex-wrap gap-3 text-sm">
+          {seeker?.instagram_handle && (
+            <a
+              className="underline"
+              target="_blank"
+              rel="noopener noreferrer"
+              href={`https://instagram.com/${seeker.instagram_handle.replace(/^@/, "")}`}
+            >
+              Instagram
+            </a>
+          )}
+          {seeker?.portfolio_url &&
+            /^https?:\/\//i.test(seeker.portfolio_url) && (
+              <a
+                className="underline"
+                target="_blank"
+                rel="noopener noreferrer"
+                href={seeker.portfolio_url}
               >
-                {job.title}
-              </Link>
-            </p>
-          </div>
-          <StatusSelect
-            applicationId={application.id}
-            currentStatus={application.status}
-          />
-        </CardHeader>
-      </Card>
-
-      {/* Cover Letter */}
-      {application.cover_letter && (
-        <Card className="mt-4">
-          <CardHeader>
-            <CardTitle className="text-base">Cover Letter</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="whitespace-pre-wrap text-sm">
-              {application.cover_letter}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Seeker Profile */}
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle className="text-base">Profile</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Specialties */}
-          {specialties.length > 0 && (
-            <div>
-              <p className="mb-2 text-sm font-medium">Specialties</p>
-              <div className="flex flex-wrap gap-1">
-                {specialties.map((s) => (
-                  <Badge key={s} variant="secondary">
-                    {s}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Years Experience */}
-          {seeker?.years_experience != null && (
-            <div>
-              <p className="text-sm font-medium">Experience</p>
-              <p className="text-sm text-muted-foreground">
-                {seeker.years_experience} year
-                {seeker.years_experience !== 1 ? "s" : ""}
-              </p>
-            </div>
-          )}
-
-          {/* Bio */}
-          {seeker?.bio && (
-            <div>
-              <p className="text-sm font-medium">About</p>
-              <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                {seeker.bio}
-              </p>
-            </div>
-          )}
-
-          {/* Links */}
-          <div className="flex flex-wrap gap-2">
-            {resumeUrl && (
-              <Button variant="outline" size="sm" asChild>
-                <a href={resumeUrl} target="_blank" rel="noopener noreferrer">
-                  <Download className="mr-2 h-4 w-4" />
-                  Download Resume
-                </a>
-              </Button>
+                Portfolio
+              </a>
             )}
-
-            {seeker?.portfolio_url && (
-              <Button variant="outline" size="sm" asChild>
-                <a
-                  href={seeker.portfolio_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Portfolio
-                </a>
-              </Button>
-            )}
-
-            {seeker?.instagram_handle && (
-              <Button variant="outline" size="sm" asChild>
-                <a
-                  href={`https://instagram.com/${seeker.instagram_handle.replace("@", "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Globe className="mr-2 h-4 w-4" />
-                  {seeker.instagram_handle}
-                </a>
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </div>
   );
 }

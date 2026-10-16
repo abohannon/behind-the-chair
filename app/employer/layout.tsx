@@ -1,3 +1,9 @@
-export default function EmployerLayout({ children }: { children: React.ReactNode }) {
+import { requireUser } from "@/lib/auth/require-user";
+export default async function EmployerLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  await requireUser("employer");
   return <>{children}</>;
 }

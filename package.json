@@ -6,7 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit --incremental false",
+    "alpha:env": "node scripts/setup-local-alpha.mjs",
+    "dev:alpha": "node scripts/run-alpha.mjs dev",
+    "test:alpha": "node --env-file=.env.alpha --test tests/alpha.integration.mjs",
+    "invite:alpha": "node --env-file=.env.alpha scripts/invite.mjs",
+    "build:alpha": "node scripts/run-alpha.mjs build",
+    "test:browser": "node --env-file=.env.alpha node_modules/@playwright/test/cli.js test",
+    "demo:alpha": "node --env-file=.env.alpha scripts/seed-demo.mjs",
+    "format:check": "prettier --check actions app components/forms components/shared lib/auth lib/validation lib/supabase lib/utils.ts lib/types/database.ts tests scripts playwright.config.ts next.config.ts proxy.ts package.json README.md",
+    "test": "node --experimental-strip-types --test tests/validation.test.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -32,12 +42,14 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
+    "prettier": "^3.9.10",
     "supabase": "^2.84.4",
     "tailwindcss": "^4",
     "typescript": "^5"

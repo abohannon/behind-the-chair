@@ -52,7 +52,7 @@ export function ApplyButton({
     return (
       <Button
         className="w-full"
-        onClick={() => router.push(`/signup?returnTo=/jobs/${jobId}`)}
+        onClick={() => router.push(`/login?returnTo=/jobs/${jobId}`)}
       >
         Apply Now
       </Button>
@@ -64,9 +64,7 @@ export function ApplyButton({
     return (
       <Button
         className="w-full"
-        onClick={() =>
-          router.push(`/seeker/profile?returnTo=/jobs/${jobId}`)
-        }
+        onClick={() => router.push(`/seeker/profile?returnTo=/jobs/${jobId}`)}
       >
         Apply Now
       </Button>

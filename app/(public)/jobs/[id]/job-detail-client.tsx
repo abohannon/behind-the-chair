@@ -1,31 +1,26 @@
 "use client";
-
 import { useState } from "react";
 import { ApplyButton } from "@/components/shared/apply-button";
 import { ApplicationSheet } from "@/components/shared/application-sheet";
-
-interface JobDetailClientProps {
+export function JobDetailClient({
+  jobId,
+  userId,
+  userRole,
+  profileComplete,
+  hasApplied: initialApplied,
+  isOwnJob,
+  contact,
+}: {
   jobId: string;
   userId: string | null;
   userRole: string | null;
   profileComplete: boolean;
   hasApplied: boolean;
   isOwnJob: boolean;
-  hasResume: boolean;
-}
-
-export function JobDetailClient({
-  jobId,
-  userId,
-  userRole,
-  profileComplete,
-  hasApplied: initialHasApplied,
-  isOwnJob,
-  hasResume,
-}: JobDetailClientProps) {
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [hasApplied, setHasApplied] = useState(initialHasApplied);
-
+  contact: { name: string; email: string; phone: string };
+}) {
+  const [open, setOpen] = useState(false);
+  const [hasApplied, setHasApplied] = useState(initialApplied);
   return (
     <>
       <ApplyButton
@@ -35,13 +30,18 @@ export function JobDetailClient({
         profileComplete={profileComplete}
         hasApplied={hasApplied}
         isOwnJob={isOwnJob}
-        onApply={() => setSheetOpen(true)}
+        onApply={() => setOpen(true)}
       />
+      {hasApplied && (
+        <p role="status" className="mt-3 text-sm">
+          Application submitted. Track it in My Applications.
+        </p>
+      )}
       <ApplicationSheet
         jobId={jobId}
-        hasResume={hasResume}
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
+        contact={contact}
+        open={open}
+        onOpenChange={setOpen}
         onSuccess={() => setHasApplied(true)}
       />
     </>

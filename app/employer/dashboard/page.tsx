@@ -33,24 +33,33 @@ export default async function EmployerDashboardPage() {
     redirect("/employer/profile");
   }
 
-  const { data: jobs } = await supabase
+  const { data: jobs, error: jobsError } = await supabase
     .from("job_posts")
-    .select("id, title, status, city, state, created_at, posted_at, applications(count)")
+    .select(
+      "id, title, status, city, state, created_at, posted_at, applications(count)",
+    )
     .eq("employer_id", employer.id)
     .order("created_at", { ascending: false });
 
+  if (jobsError)
+    throw new Error("Unable to load your listings. Please try again.");
   const jobList = jobs ?? [];
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">{employer.salon_name}</p>
         </div>
-        <Button asChild>
-          <Link href="/employer/jobs/new">Post a Job</Link>
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Button asChild variant="outline">
+            <Link href="/employer/profile">Business profile</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/employer/jobs/new">Post a Job</Link>
+          </Button>
+        </div>
       </div>
 
       {jobList.length === 0 ? (
@@ -67,9 +76,9 @@ export default async function EmployerDashboardPage() {
       ) : (
         <div className="space-y-4">
           {jobList.map((job) => {
-            const appCount = (job.applications as any)?.[0]?.count ?? 0;
+            const appCount = job.applications?.[0]?.count ?? 0;
             const jobHref =
-              job.status === "active"
+              job.status !== "draft"
                 ? `/employer/jobs/${job.id}/applications`
                 : `/employer/jobs/${job.id}/preview`;
 
@@ -78,10 +87,7 @@ export default async function EmployerDashboardPage() {
                 <CardHeader className="flex-row items-start justify-between space-y-0">
                   <div>
                     <CardTitle>
-                      <Link
-                        href={jobHref}
-                        className="hover:underline"
-                      >
+                      <Link href={jobHref} className="hover:underline">
                         {job.title}
                       </Link>
                     </CardTitle>
@@ -90,7 +96,8 @@ export default async function EmployerDashboardPage() {
                       {formatRelativeDate(job.created_at)}
                       {job.status === "active" && (
                         <>
-                          {" "}&middot; {appCount} application
+                          {" "}
+                          &middot; {appCount} application
                           {appCount !== 1 ? "s" : ""}
                         </>
                       )}
@@ -102,7 +109,7 @@ export default async function EmployerDashboardPage() {
                   <CardContent>
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/employer/jobs/${job.id}/preview`}>
-                        Complete Payment
+                        Preview & publish
                       </Link>
                     </Button>
                   </CardContent>

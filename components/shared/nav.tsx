@@ -28,14 +28,17 @@ export async function Nav() {
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
         <Link href="/jobs" className="flex items-center gap-2 font-semibold">
           <Scissors className="h-5 w-5" />
-          <span>SalonJobs</span>
+          <span>Behind the Chair</span>
         </Link>
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-4 md:flex">
           {!user && (
             <>
-              <Link href="/jobs" className="text-sm text-muted-foreground hover:text-foreground">
+              <Link
+                href="/jobs"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
                 Browse Jobs
               </Link>
               <Button asChild size="sm" variant="outline">
@@ -49,7 +52,10 @@ export async function Nav() {
 
           {role === "employer" && (
             <>
-              <Link href="/employer/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
+              <Link
+                href="/employer/dashboard"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
                 Dashboard
               </Link>
               <Button asChild size="sm">
@@ -65,13 +71,22 @@ export async function Nav() {
 
           {role === "seeker" && (
             <>
-              <Link href="/jobs" className="text-sm text-muted-foreground hover:text-foreground">
+              <Link
+                href="/jobs"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
                 Jobs
               </Link>
-              <Link href="/seeker/applications" className="text-sm text-muted-foreground hover:text-foreground">
+              <Link
+                href="/seeker/applications"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
                 My Applications
               </Link>
-              <Link href="/seeker/profile" className="text-sm text-muted-foreground hover:text-foreground">
+              <Link
+                href="/seeker/profile"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
                 Profile
               </Link>
               <form action={signOut}>

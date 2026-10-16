@@ -37,13 +37,25 @@ export function MobileNav({ user, role }: MobileNavProps) {
         <nav className="mt-6 flex flex-col gap-3">
           {!user && (
             <>
-              <Link href="/jobs" onClick={() => setOpen(false)} className="text-sm">
+              <Link
+                href="/jobs"
+                onClick={() => setOpen(false)}
+                className="text-sm"
+              >
                 Browse Jobs
               </Link>
-              <Link href="/login" onClick={() => setOpen(false)} className="text-sm">
+              <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className="text-sm"
+              >
                 Sign in
               </Link>
-              <Link href="/signup" onClick={() => setOpen(false)} className="text-sm font-medium">
+              <Link
+                href="/signup"
+                onClick={() => setOpen(false)}
+                className="text-sm font-medium"
+              >
                 Post a Job
               </Link>
             </>
@@ -51,10 +63,18 @@ export function MobileNav({ user, role }: MobileNavProps) {
 
           {role === "employer" && (
             <>
-              <Link href="/employer/dashboard" onClick={() => setOpen(false)} className="text-sm">
+              <Link
+                href="/employer/dashboard"
+                onClick={() => setOpen(false)}
+                className="text-sm"
+              >
                 Dashboard
               </Link>
-              <Link href="/employer/jobs/new" onClick={() => setOpen(false)} className="text-sm">
+              <Link
+                href="/employer/jobs/new"
+                onClick={() => setOpen(false)}
+                className="text-sm"
+              >
                 Post a Job
               </Link>
               <form action={signOut}>
@@ -67,13 +87,25 @@ export function MobileNav({ user, role }: MobileNavProps) {
 
           {role === "seeker" && (
             <>
-              <Link href="/jobs" onClick={() => setOpen(false)} className="text-sm">
+              <Link
+                href="/jobs"
+                onClick={() => setOpen(false)}
+                className="text-sm"
+              >
                 Jobs
               </Link>
-              <Link href="/seeker/applications" onClick={() => setOpen(false)} className="text-sm">
+              <Link
+                href="/seeker/applications"
+                onClick={() => setOpen(false)}
+                className="text-sm"
+              >
                 My Applications
               </Link>
-              <Link href="/seeker/profile" onClick={() => setOpen(false)} className="text-sm">
+              <Link
+                href="/seeker/profile"
+                onClick={() => setOpen(false)}
+                className="text-sm"
+              >
                 Profile
               </Link>
               <form action={signOut}>

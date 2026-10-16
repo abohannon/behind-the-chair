@@ -1,5 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth/require-user";
+import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { formatPayRange } from "@/lib/utils";
+import { formatCompensation } from "@/lib/utils";
 import { JOB_TYPES, EXPERIENCE_LEVELS } from "@/lib/constants/categories";
 import { PublishButton } from "./publish-button";
 
@@ -21,15 +21,9 @@ export default async function JobPreviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
+  const { supabase } = await requireUser("employer");
+  const { data: owns } = await supabase.rpc("owns_job", { job_id: id });
+  if (!owns) notFound();
 
   const { data: job } = await supabase
     .from("job_posts")
@@ -97,21 +91,21 @@ export default async function JobPreviewPage({
             <h3 className="mb-1 text-sm font-medium text-muted-foreground">
               Pay Range
             </h3>
-            <p>{formatPayRange(job.pay_range_low, job.pay_range_high)}</p>
+            <p>{formatCompensation(job)}</p>
           </div>
         </CardContent>
       </Card>
 
-      {job.status === "draft" && (
+      {
         <div className="flex gap-4">
           <div className="flex-1">
-            <PublishButton jobId={job.id} />
+            <PublishButton jobId={job.id} status={job.status} />
           </div>
           <Button variant="outline" asChild className="flex-1">
             <Link href={`/employer/jobs/${job.id}/edit`}>Edit Post</Link>
           </Button>
         </div>
-      )}
+      }
     </div>
   );
 }

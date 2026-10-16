@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SalonJobs — Find Your Next Salon Position",
+  title: "Behind the Chair — Find Your Next Salon Position",
   description:
     "The job board for salon and beauty professionals. Find booth rentals, commission, and salary positions.",
 };
@@ -32,7 +32,12 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <Nav />
-        <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
+          {children}
+        </main>
+        <footer className="mx-auto w-full max-w-5xl px-4 py-6 text-xs text-muted-foreground">
+          Behind the Chair · Portland pilot · Private alpha
+        </footer>
         <Toaster />
       </body>
     </html>

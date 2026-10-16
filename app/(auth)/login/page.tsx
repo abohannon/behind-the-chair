@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { signIn } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default function LoginPage() {
+function LoginForm() {
+  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -37,6 +39,11 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form action={handleSubmit} className="space-y-4">
+            <input
+              type="hidden"
+              name="returnTo"
+              value={searchParams.get("returnTo") ?? ""}
+            />
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -58,23 +65,35 @@ export default function LoginPage() {
               />
             </div>
 
-            {error && (
-              <p className="text-sm text-destructive">{error}</p>
-            )}
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
 
+          <Link
+            href="/forgot-password"
+            className="mt-4 block text-sm underline"
+          >
+            Forgot your password?
+          </Link>
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
+            Need an invitation?{" "}
             <Link href="/signup" className="text-primary hover:underline">
-              Create one
+              Alpha access
             </Link>
           </p>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

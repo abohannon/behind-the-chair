@@ -1,175 +1,66 @@
-"use client";
-
-import { useActionState, useRef, useState } from "react";
-import { upsertEmployerProfile, uploadLogo } from "@/actions/employer-profile";
-import type { EmployerProfileState, UploadLogoState } from "@/actions/employer-profile";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { requireUser } from "@/lib/auth/require-user";
+import { EmployerProfileForm } from "@/components/forms/employer-profile-form";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-export default function EmployerProfilePage() {
-  const [profileState, profileAction, profilePending] = useActionState<
-    EmployerProfileState,
-    FormData
-  >(upsertEmployerProfile, null);
-
-  const [logoState, logoAction, logoPending] = useActionState<
-    UploadLogoState,
-    FormData
-  >(uploadLogo, null);
-
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      setLogoPreview(URL.createObjectURL(file));
-      const formData = new FormData();
-      formData.append("logo", file);
-      logoAction(formData);
-    }
-  }
-
-  const displayLogo = logoState?.logoUrl ?? logoPreview;
-
+  removeBusinessPhoto,
+  moveBusinessPhoto,
+} from "@/actions/employer-profile";
+/* eslint-disable @next/next/no-img-element -- User-managed Supabase images. */
+export default async function BusinessProfile({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string }>;
+}) {
+  const { supabase, user } = await requireUser("employer");
+  const { data: initial, error } = await supabase
+    .from("employer_profiles")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (error) throw new Error("Unable to load business profile");
+  const photos = Array.isArray(initial?.photos)
+    ? initial.photos.filter((v): v is string => typeof v === "string")
+    : [];
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold">Employer Profile</h1>
-
-      {/* Logo Upload */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Salon Logo</CardTitle>
-          <CardDescription>Upload your salon logo (JPEG, PNG, or WebP, max 5MB)</CardDescription>
-        </CardHeader>
-        <CardContent className="flex items-center gap-4">
-          <Avatar size="lg" className="size-20">
-            {displayLogo ? (
-              <AvatarImage src={displayLogo} alt="Salon logo" />
-            ) : null}
-            <AvatarFallback className="text-lg">S</AvatarFallback>
-          </Avatar>
-          <div className="space-y-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={logoPending}
-            >
-              {logoPending ? "Uploading..." : "Upload Logo"}
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={handleLogoChange}
+    <div className="mx-auto max-w-2xl space-y-6">
+      <h1 className="text-3xl font-semibold">Your business</h1>
+      {(await searchParams).saved && (
+        <p role="status">
+          Business saved. You can now add images or post a job.
+        </p>
+      )}
+      {initial?.logo_url && (
+        <img
+          src={initial.logo_url}
+          className="h-20 w-20 rounded-lg object-cover"
+          alt={`${initial.salon_name} logo`}
+        />
+      )}
+      <EmployerProfileForm initial={initial} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        {photos.map((url, i) => (
+          <div key={url} className="space-y-2 rounded-xl border p-3">
+            <img
+              src={url}
+              alt={`${initial?.salon_name} gallery photo ${i + 1}`}
+              className="aspect-video w-full rounded-lg object-cover"
             />
-            {logoState?.error && (
-              <p className="text-sm text-destructive">{logoState.error}</p>
-            )}
+            <div className="flex gap-4">
+              <form action={removeBusinessPhoto}>
+                <input type="hidden" name="url" value={url} />
+                <button className="text-sm underline">
+                  Remove photo {i + 1}
+                </button>
+              </form>
+              {i > 0 && (
+                <form action={moveBusinessPhoto}>
+                  <input type="hidden" name="url" value={url} />
+                  <button className="text-sm underline">Move earlier</button>
+                </form>
+              )}
+            </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Profile Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Salon Details</CardTitle>
-          <CardDescription>Tell job seekers about your salon</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action={profileAction} className="space-y-4">
-            {profileState?.error && (
-              <p className="text-sm text-destructive">{profileState.error}</p>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="salonName">Salon Name *</Label>
-              <Input id="salonName" name="salonName" required />
-              {profileState?.fieldErrors?.salonName && (
-                <p className="text-sm text-destructive">
-                  {profileState.fieldErrors.salonName}
-                </p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="locationCity">City *</Label>
-                <Input id="locationCity" name="locationCity" required />
-                {profileState?.fieldErrors?.locationCity && (
-                  <p className="text-sm text-destructive">
-                    {profileState.fieldErrors.locationCity}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="locationState">State *</Label>
-                <Input id="locationState" name="locationState" required />
-                {profileState?.fieldErrors?.locationState && (
-                  <p className="text-sm text-destructive">
-                    {profileState.fieldErrors.locationState}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description *</Label>
-              <Textarea
-                id="description"
-                name="description"
-                rows={4}
-                required
-              />
-              {profileState?.fieldErrors?.description && (
-                <p className="text-sm text-destructive">
-                  {profileState.fieldErrors.description}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="websiteUrl">Website URL</Label>
-              <Input
-                id="websiteUrl"
-                name="websiteUrl"
-                type="url"
-                placeholder="https://example.com"
-              />
-              {profileState?.fieldErrors?.websiteUrl && (
-                <p className="text-sm text-destructive">
-                  {profileState.fieldErrors.websiteUrl}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="instagramHandle">Instagram Handle</Label>
-              <Input
-                id="instagramHandle"
-                name="instagramHandle"
-                placeholder="@yoursalon"
-              />
-            </div>
-
-            <Button type="submit" disabled={profilePending} className="w-full">
-              {profilePending ? "Saving..." : "Save Profile"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+        ))}
+      </div>
     </div>
   );
 }

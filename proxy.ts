@@ -7,6 +7,9 @@ export async function proxy(request: NextRequest) {
 
   // Public routes — no auth required
   if (
+    path === "/" ||
+    path.startsWith("/forgot-password") ||
+    path.startsWith("/set-password") ||
     path.startsWith("/jobs") ||
     path.startsWith("/login") ||
     path.startsWith("/signup") ||
@@ -19,7 +22,7 @@ export async function proxy(request: NextRequest) {
   // Not authenticated — redirect to login
   if (!user) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("returnTo", path);
+    loginUrl.searchParams.set("returnTo", path + request.nextUrl.search);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -47,9 +50,7 @@ export async function proxy(request: NextRequest) {
   // Seeker routes
   if (path.startsWith("/seeker")) {
     if (profile.role !== "seeker") {
-      return NextResponse.redirect(
-        new URL("/employer/dashboard", request.url)
-      );
+      return NextResponse.redirect(new URL("/employer/dashboard", request.url));
     }
   }
 

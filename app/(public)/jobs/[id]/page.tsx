@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MapPin, Clock, Globe, AtSign } from "lucide-react";
-import { formatPayRange, formatRelativeDate } from "@/lib/utils";
+import { formatCompensation, formatRelativeDate } from "@/lib/utils";
 import { JOB_TYPES, EXPERIENCE_LEVELS } from "@/lib/constants/categories";
 import { JobDetailClient } from "./job-detail-client";
 import type { Metadata } from "next";
@@ -13,7 +13,9 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { id } = await params;
   const supabase = await createClient();
 
@@ -25,12 +27,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     .single();
 
   if (!job) {
-    return { title: "Job Not Found | SalonJobs" };
+    return { title: "Job Not Found | Behind the Chair" };
   }
 
   const salonName = job.employer_profiles?.salon_name ?? "a salon";
-  const title = `${job.title} at ${salonName} | SalonJobs`;
-  const description = `${job.title} - ${job.category} position at ${salonName} in ${job.city}, ${job.state}. Apply now on SalonJobs.`;
+  const title = `${job.title} at ${salonName} | Behind the Chair`;
+  const description = `${job.title} - ${job.category} position at ${salonName} in ${job.city}, ${job.state}. Apply now on Behind the Chair.`;
 
   return {
     title,
@@ -50,7 +52,7 @@ export default async function JobDetailPage({ params }: PageProps) {
   const { data: job } = await supabase
     .from("job_posts")
     .select(
-      "*, employer_profiles(id, salon_name, logo_url, description, location_city, location_state, website_url, instagram_handle)"
+      "*, employer_profiles(id, salon_name, logo_url, description, location_city, location_state, website_url, instagram_handle, photos)",
     )
     .eq("id", id)
     .eq("status", "active")
@@ -75,25 +77,30 @@ export default async function JobDetailPage({ params }: PageProps) {
   let profileComplete = false;
   let hasApplied = false;
   let isOwnJob = false;
-  let hasResume = false;
+  let contact = { name: "", email: user?.email ?? "", phone: "" };
 
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role, profile_complete")
+      .select("role, profile_complete, full_name")
       .eq("id", user.id)
       .single();
     userRole = profile?.role ?? null;
+    contact.name = profile?.full_name ?? "";
     profileComplete = profile?.profile_complete ?? false;
 
     if (userRole === "seeker") {
       const { data: seekerProfile } = await supabase
         .from("seeker_profiles")
-        .select("id, resume_url")
+        .select("id, contact_email, phone")
         .eq("user_id", user.id)
         .single();
       if (seekerProfile) {
-        hasResume = !!seekerProfile.resume_url;
+        contact = {
+          ...contact,
+          email: seekerProfile.contact_email ?? contact.email,
+          phone: seekerProfile.phone ?? "",
+        };
         const { data: application } = await supabase
           .from("applications")
           .select("id")
@@ -135,7 +142,9 @@ export default async function JobDetailPage({ params }: PageProps) {
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
-                <CardTitle className="text-xl">{job.title}</CardTitle>
+                <CardTitle role="heading" aria-level={1} className="text-xl">
+                  {job.title}
+                </CardTitle>
                 <p className="text-muted-foreground">
                   {job.employer_profiles?.salon_name}
                 </p>
@@ -159,9 +168,7 @@ export default async function JobDetailPage({ params }: PageProps) {
                 {job.city}, {job.state}
               </span>
               {(job.pay_range_low || job.pay_range_high) && (
-                <span>
-                  {formatPayRange(job.pay_range_low, job.pay_range_high)}
-                </span>
+                <span>{formatCompensation(job)}</span>
               )}
               {job.posted_at && (
                 <span className="flex items-center gap-1">
@@ -198,7 +205,7 @@ export default async function JobDetailPage({ params }: PageProps) {
               profileComplete={profileComplete}
               hasApplied={hasApplied}
               isOwnJob={isOwnJob}
-              hasResume={hasResume}
+              contact={contact}
             />
           </CardContent>
         </Card>
@@ -212,6 +219,18 @@ export default async function JobDetailPage({ params }: PageProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              {Array.isArray(job.employer_profiles.photos) &&
+                job.employer_profiles.photos
+                  .filter((url): url is string => typeof url === "string")
+                  .map((url, index) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={url}
+                      src={url}
+                      alt={`${job.employer_profiles?.salon_name} photo ${index + 1}`}
+                      className="aspect-video w-full rounded-lg object-cover"
+                    />
+                  ))}
               {job.employer_profiles.description && (
                 <p className="text-sm text-muted-foreground">
                   {job.employer_profiles.description}
@@ -236,7 +255,7 @@ export default async function JobDetailPage({ params }: PageProps) {
                 )}
                 {job.employer_profiles.instagram_handle && (
                   <a
-                    href={`https://instagram.com/${job.employer_profiles.instagram_handle}`}
+                    href={`https://instagram.com/${job.employer_profiles.instagram_handle.replace(/^@/, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 hover:underline"
