@@ -61,13 +61,22 @@ Abandoned resumes older than 24 hours can be inspected with `node --env-file=.en
 
 ## Private hosted preview
 
-Vercel project: [behind-the-chair](https://vercel.com/adams-projects-a0f5e935/behind-the-chair), owned by the personal account `abohannon@protonmail.com` under **Adam’s projects**. This checkout is linked through ignored `.vercel/project.json`. Next.js, Node 22, `npm ci`, `npm run build`, and authentication protection on all deployments are configured. No deployment or hosted environment variables have been created.
+Vercel project: [behind-the-chair](https://vercel.com/adams-projects-a0f5e935/behind-the-chair), owned by the personal account `abohannon@protonmail.com` under **Adam’s projects**. This checkout is linked through ignored `.vercel/project.json`. Next.js, Node 22, `npm ci`, `npm run build`, and authentication protection on all deployments are configured. Production environment variables now point to the hosted Supabase project, and automatic deployment from `main` is enabled.
 
 Use the personal CLI login explicitly: `npx vercel --global-config "$HOME/Library/Application Support/com.vercel.cli-personal"`. The default CLI credentials belong to the work account. The empty project mistakenly created there was deleted.
 
-GitHub repository: [abohannon/behind-the-chair](https://github.com/abohannon/behind-the-chair), with `main` as the primary branch. Automatic Vercel deployments are temporarily disabled through `git.deploymentEnabled: false` in `vercel.json` until the hosted backend is configured. Remove that setting when the environment is ready.
+GitHub repository: [abohannon/behind-the-chair](https://github.com/abohannon/behind-the-chair), with `main` as the primary branch. Automatic Vercel deployments are enabled in `vercel.json`. The hosted app uses `https://itpvubcxmvwxawibkicr.supabase.co` (the existing “Salon App” project in the “Adam Bohannon” organization). The forward alpha migration has been applied, preserving existing accounts and listings.
 
-The hosted preview still requires a dedicated Supabase alpha project. Do not apply these migrations to an unidentified existing project.
+Hosted authentication points to `https://behind-the-chair.vercel.app`, with signup restricted to invitations and the application’s invitation/recovery email templates installed. Custom SMTP is not configured yet. For the private alpha, create a one-time invitation link without sending email:
+
+```sh
+npm run invite:hosted -- tester@example.com seeker --link
+npm run invite:hosted -- owner@example.com employer --link
+```
+
+These commands use ignored `.env.hosted`, which contains administrative credentials for this cloud project. The runtime Vercel app has only public connection variables. Share each invitation link only with its intended recipient. SMTP is required to enable email invitations and self-service password recovery; the local email inbox is not a hosted email service.
+
+For a future replacement backend or deployment, use the setup steps below. Do not apply migrations to an unidentified project.
 
 1. Configure the host's private-preview access protection. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_APP_URL` to the dedicated alpha deployment. The running app does not need a service role key; invitation/maintenance scripts do.
 2. Inspect existing records and migration history, then apply the forward SQL migrations in `supabase/migrations/` to the intended project. Generate types with `npx supabase gen types typescript --project-id YOUR_PROJECT_ID > lib/types/database.ts` after schema changes.

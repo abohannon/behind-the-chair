@@ -16,7 +16,8 @@
     "test:browser": "node --env-file=.env.alpha node_modules/@playwright/test/cli.js test",
     "demo:alpha": "node --env-file=.env.alpha scripts/seed-demo.mjs",
     "format:check": "prettier --check actions app components/forms components/shared lib/auth lib/validation lib/supabase lib/utils.ts lib/types/database.ts tests scripts playwright.config.ts next.config.ts proxy.ts package.json README.md",
-    "test": "node --experimental-strip-types --test tests/validation.test.mjs"
+    "test": "node --experimental-strip-types --test tests/validation.test.mjs",
+    "invite:hosted": "node --env-file=.env.hosted scripts/invite.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

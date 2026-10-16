@@ -1,7 +1,7 @@
 # Behind the Chair — Private Alpha Plan
 
 Date: 2026-10-16
-Status: Implemented and verified locally; hosted preview pending
+Status: Local alpha verified; hosted database configured and deployment verification in progress
 
 This plan replaces the March 2026 thin-thread plan for alpha scope and sequencing. Keep the earlier documents as history. The alpha reuses the existing app; it does not start a new scaffold.
 
@@ -154,3 +154,11 @@ Verified locally:
 Run `npm run demo:alpha` to recreate the local demo. Business login: `business@alpha.example`; applicant login: `applicant@alpha.example`. Both synthetic local accounts use `BehindTheChair-Alpha1!`. Start locally with `npm run dev:alpha`; see README for hosted prerequisites and invitation commands.
 
 Application notification emails are deliberately disabled for alpha; the dashboard is the source of truth. Stripe checkout and payment webhooks are disabled. The hosted preview is not complete until its access protection, auth/mail configuration, migrations, and full hiring flow are verified on the selected deployment.
+
+## Hosted configuration — 2026-10-16
+
+The production Vercel variables were verified. `NEXT_PUBLIC_SUPABASE_URL` was corrected to the chosen hosted project, and its public key was accepted by Supabase. The existing “Salon App” project (`itpvubcxmvwxawibkicr`) belongs to the “Adam Bohannon” organization accessible through the CLI. Before migration it held two accounts, one business, one job, and no applicants or applications.
+
+Only pending migration `00003_private_alpha.sql` was pushed after a dry run; existing data was preserved. Hosted auth now uses `https://behind-the-chair.vercel.app`, exact callback URLs, invitation-only signup, an enabled email provider, and the repository’s invitation/recovery templates. Custom SMTP remains unconfigured. The invitation script supports `--link` for manual one-time invitations without sending email; self-service recovery email still requires an email provider.
+
+Ignored `.env.hosted` holds local administrative credentials for this project. Vercel has only the three public runtime variables. Automatic Git deployments are enabled; hosted verification results will be recorded after deployment completes. GitHub checks for the initial alpha commit passed.

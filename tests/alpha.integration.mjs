@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 if (!url || !/^http:\/\/(127\.0\.0\.1|localhost):/.test(url))
@@ -473,4 +474,24 @@ await test("closed listings stop submissions but preserve applicant history and 
   );
 });
 
+await test("manual invitations produce a one-time link without email delivery", async () => {
+  const email = `manual-${run}@alpha.example`;
+  emails.push(email);
+  const output = execFileSync(
+    process.execPath,
+    ["scripts/invite.mjs", email, "seeker", "--link"],
+    { encoding: "utf8", env: process.env },
+  );
+  const link = new URL(output.trim().split("\n").at(-1));
+  assert.equal(link.origin, process.env.NEXT_PUBLIC_APP_URL);
+  assert.equal(link.pathname, "/callback");
+  assert.equal(link.searchParams.get("type"), "invite");
+  assert.ok(link.searchParams.get("token_hash"));
+  const { users } = ok(
+    await admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+  );
+  const invited = users.find((u) => u.email === email);
+  assert.ok(invited);
+  ids.push(invited.id);
+});
 await cleanup();
